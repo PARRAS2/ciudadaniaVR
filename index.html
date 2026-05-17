@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VR Earth Experience</title>
+    <title>VR 360 Earth Experience - Organizaciones Mundiales</title>
     <style>
         body, html {
             margin: 0;
@@ -12,166 +12,455 @@
             height: 100%;
             overflow: hidden;
             background-color: #000;
-            font-family: sans-serif;
-        }
-        #permission-btn {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 30px;
-            font-size: 18px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 10;
-            box-shadow: 0px 4px 10px rgba(0,123,255,0.5);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
         }
         #canvas-container {
             width: 100vw;
             height: 100vh;
-            display: flex;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
+        /* El botón de VR nativo se inyectará abajo automáticamente via WebXR */
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/DeviceOrientationControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/effects/StereoEffect.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/webxr/VRButton.js"></script>
 </head>
 <body>
 
-    <button id="permission-btn">Iniciar Experiencia VR</button>
     <div id="canvas-container"></div>
 
     <script>
-        let scene, camera, renderer, effect, controls;
-        let earth, clouds;
-        const container = document.getElementById('canvas-container');
-        const button = document.getElementById('permission-btn');
+        const orgData = {
+            "ACNUR": { anio: 1950, aportes: "Protección internacional a millones de refugiados y personas desplazadas por conflictos mundiales. Coordina refugios de emergencia, agua y salud.", paises: ["Afganistán", "Albania", "Alemania", "Angola", "Argelia", "Argentina", "Australia", "Austria", "Bangladesh", "Bélgica", "Brasil", "Canadá", "Chile", "Colombia", "España"] },
+            "Banco Mundial": { anio: 1944, aportes: "Financiamiento estratégico y asistencia técnica a países en desarrollo. Su meta principal es reducir los índices de pobreza y fomentar prosperidad.", paises: ["Argentina", "Bolivia", "Brasil", "Chile", "Colombia", "Ecuador", "Estados Unidos", "México", "Perú", "Uruguay", "Venezuela", "Reino Unido", "Francia", "Japón", "China"] },
+            "Cruz Roja": { anio: 1863, aportes: "Atención humanitaria neutral en conflictos armados, desastres naturales y emergencias médicas globales. Basado en neutralidad e independencia.", paises: ["Suiza", "Francia", "Italia", "España", "Reino Unido", "Alemania", "Estados Unidos", "Canadá", "México", "Colombia", "Brasil", "Argentina", "Japón", "China", "Australia"] },
+            "FAO": { anio: 1945, aportes: "Esfuerzos internacionales dirigidos a erradicar el hambre, lograr seguridad alimentaria y asegurar una agricultura eficiente y sostenible en el mundo.", paises: ["Italia", "Estados Unidos", "Canadá", "Francia", "Reino Unido", "Brasil", "México", "Argentina", "China", "India", "Japón", "Australia", "Egipto", "Nigeria", "Sudáfrica"] },
+            "FMI": { anio: 1944, aportes: "Asegurar la estabilidad del sistema financiero internacional, promover el comercio, prevenir crisis cambiarias y otorgar créditos de asistencia.", paises: ["Estados Unidos", "Japón", "Alemania", "Francia", "Reino Unido", "China", "Italia", "Canadá", "India", "Brasil", "Rusia", "México", "España", "Argentina", "Arabia Saudita"] },
+            "INTERPOL": { anio: 1923, aportes: "Facilitar la cooperación policial internacional y el control transfronterizo de delitos complejos como terrorismo y crimen organizado cibernético.", paises: ["Austria", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Japón", "China", "Brasil", "Argentina", "México", "Colombia", "Canadá", "Australia"] },
+            "OIEA": { anio: 1957, aportes: "Promoción del uso pacífico y seguro de la energía nuclear, desarrollo tecnológico científico y monitorización para evitar la proliferación de armas atómicas.", paises: ["Estados Unidos", "Rusia", "China", "Francia", "Reino Unido", "Japón", "Alemania", "Canadá", "India", "Brasil", "Argentina", "México", "Sudáfrica", "Australia", "España"] },
+            "OIT": { anio: 1919, aportes: "Establecer normas laborales internacionales, promover el trabajo decente, defender derechos de los trabajadores y robustecer la protección social.", paises: ["Suiza", "Francia", "Reino Unido", "Estados Unidos", "Alemania", "Italia", "España", "Brasil", "México", "Argentina", "Chile", "Colombia", "China", "India", "Japón"] },
+            "OMC": { anio: 1995, aportes: "Supervisar las normas globales que rigen el comercio internacional entre los países miembros. Garantiza un flujo comercial libre, fluido y predecible.", paises: ["Suiza", "Estados Unidos", "China", "Japón", "Alemania", "Francia", "Reino Unido", "Italia", "Canadá", "Brasil", "México", "Argentina", "India", "Corea del Sur", "Australia"] },
+            "OMI": { anio: 1948, aportes: "Mejorar la seguridad del transporte marítimo dedicado al comercio global y establecer medidas estrictas para prevenir la contaminación del ecosistema marino.", paises: ["Reino Unido", "Estados Unidos", "Panamá", "Liberia", "Grecia", "Japón", "China", "Noruega", "Singapur", "Francia", "Alemania", "Italia", "Brasil", "México", "Argentina"] },
+            "OMS": { anio: 1948, aportes: "Gestionar políticas de prevención, promoción e intervención en salud pública global. Máxima autoridad coordinadora de pandemias y emergencies sanitarias.", paises: ["Suiza", "Estados Unidos", "Brasil", "México", "Argentina", "Francia", "Reino Unido", "Alemania", "Italia", "España", "China", "India", "Japón", "Rusia", "Sudáfrica"] },
+            "ONU": { anio: 1945, aportes: "Mantener la paz colectiva, la seguridad internacional, fomentar relaciones de amistad estrechas, defender derechos humanos y la cooperación global.", paises: ["Estados Unidos", "Rusia", "China", "Reino Unido", "Francia", "Alemania", "Japón", "Brasil", "México", "Argentina", "Colombia", "Canadá", "España", "Italia", "India"] },
+            "OPAQ": { anio: 1997, aportes: "Organismo internacional encargado de la destrucción total, verificada y permanente de todos los arsenales de armas químicas existentes en el planeta.", paises: ["Países Bajos", "Estados Unidos", "Rusia", "China", "Reino Unido", "Francia", "Alemania", "Japón", "India", "Brasil", "México", "Argentina", "Canadá", "Australia", "España"] },
+            "PMA": { anio: 1961, aportes: "Asistencia de respuesta rápida alimentaria en zonas críticas de guerra, hambrunas devastadoras y desastres naturales. Salva millones de vidas anualmente.", paises: ["Italia", "Estados Unidos", "Canadá", "Francia", "Reino Unido", "Alemania", "Japón", "Brasil", "México", "Argentina", "Egipto", "Sudán", "Etiopía", "Siria", "Afganistán"] },
+            "PNUMA": { anio: 1972, aportes: "Coordinar respuestas de conservación ambiental, monitorear de forma científica el cambio climático y proteger la biodiversidad de ecosistemas vulnerables.", paises: ["Kenia", "Estados Unidos", "Brasil", "México", "Colombia", "Canadá", "Francia", "Reino Unido", "Alemania", "España", "China", "India", "Japón", "Australia", "Sudáfrica"] },
+            "UNESCO": { anio: 1945, aportes: "Preservación histórica del Patrimonio de la Humanidad, fomento internacional del desarrollo de la educación pública, la ciencia y la diversidad cultural.", paises: ["Francia", "Estados Unidos", "Reino Unido", "España", "Italia", "Alemania", "México", "Brasil", "Argentina", "Perú", "Egipto", "China", "Japón", "India", "Rusia"] },
+            "UNICEF": { anio: 1946, aportes: "Garantizar protección médica, nutrición esencial, agua potable y desarrollo educativo infantil a niños vulnerables en situaciones de extrema crisis.", paises: ["Estados Unidos", "Canadá", "Brasil", "México", "Argentina", "Colombia", "Francia", "Reino Unido", "Alemania", "España", "Italia", "China", "India", "Japón", "Sudáfrica"] },
+            "UIT": { anio: 1865, aportes: "Regular y estandarizar las telecomunicaciones de radiofrecuencia mundiales, la administration del espacio satelital y el desarrollo global de redes de internet.", paises: ["Suiza", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Rusia", "China", "Japón", "India", "Brasil", "México", "Argentina", "Canadá"] }
+        };
+
+        const orgKeys = Object.keys(orgData);
+        let currentSelectedIndex = 0;
+        let currentPaisPage = 0;
+        const paisesPorPagina = 8;
+
+        let scene, camera, renderer, mouseControls;
+        let earth, clouds, uiGroup;
+        
+        let leftPanelMesh, rightPanelMesh, selectorPanelMesh;
+        let leftCanvas, leftCtx, rightCanvas, rightCtx, selectorCanvas, selectorCtx;
+        let leftTexture, rightTexture, selectorTexture;
+
+        let activeGamepad = null;
+        let buttonPressedState = false;
+        let dpadPressedState = { up: false, down: false, left: false, right: false };
+
+        const raycaster = new THREE.Raycaster();
+        const gazeDirection = new THREE.Vector3(); 
+        let currentZoomObject = null; 
+        
+        const defaultCameraPos = new THREE.Vector3(0, 0, 5.6);
+        let cameraTargetPos = new THREE.Vector3(0, 0, 5.6); 
+        let cameraTargetLookAt = new THREE.Vector3(0, 0, 0); 
+        let currentCameraLookAt = new THREE.Vector3(0, 0, 0);
+
+        const canvasW = 2048, canvasH = 2048;
+        const textureLoader = new THREE.TextureLoader();
 
         function init() {
             scene = new THREE.Scene();
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 5);
+            camera.position.copy(defaultCameraPos);
+            scene.add(camera);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // CAMBIO CLAVE VR 360°: Habilitamos el soporte XR nativo del motor de renderizado
+            renderer.xr.enabled = true;
             container.appendChild(renderer.domElement);
 
-            effect = new THREE.StereoEffect(renderer);
-            effect.setSize(window.innerWidth, window.innerHeight);
+            // Inyectamos el botón oficial de WebXR en el documento para entrar a VR real
+            document.body.appendChild(VRButton.createButton(renderer));
 
-            // Luces equilibradas para resaltar las texturas 8k
-            const ambientLight = new THREE.AmbientLight(0xaaaaaa);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            directionalLight.position.set(5, 3, 5);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(5, 5, 6);
             scene.add(directionalLight);
 
-            const textureLoader = new THREE.TextureLoader();
-
-            // 1. CREAR LA TIERRA
-            const geometry = new THREE.SphereGeometry(1.5, 64, 64); // Más segmentos para mejor resolución 8k
+            // TIERRA
+            const geometry = new THREE.SphereGeometry(1.2, 64, 64);
             const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
-
-            const material = new THREE.MeshPhongMaterial({
-                map: earthTexture,
-                shininess: 5
-            });
-
-            earth = new THREE.Mesh(geometry, material);
+            const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 });
+            earth = new THREE.Mesh(geometry, earthMaterial);
+            earth.userData = { type: "earth" };
             scene.add(earth);
 
-            // 2. CREAR LAS NUBES (Capa superior translúcida)
-            const cloudsGeometry = new THREE.SphereGeometry(1.52, 64, 64); // Ligeramente más grande que la tierra
+            // NUBES
+            const cloudsGeometry = new THREE.SphereGeometry(1.215, 64, 64);
             const cloudsTexture = textureLoader.load('textures/8k_earth_clouds.jpg');
-            
-            const cloudsMaterial = new THREE.MeshPhongMaterial({
-                map: cloudsTexture,
-                transparent: true,
-                blending: THREE.AdditiveBlending, // Mezcla perfecta para el color blanco de las nubes
-                opacity: 0.4
-            });
-
+            const cloudsMaterial = new THREE.MeshPhongMaterial({ alphaMap: cloudsTexture, transparent: true, color: 0xffffff, depthWrite: false });
             clouds = new THREE.Mesh(cloudsGeometry, cloudsMaterial);
             scene.add(clouds);
 
-            // 3. CREAR EL FONDO DE LA VÍA LÁCTEA
             createSpaceBackground(textureLoader);
+            setupTextCanvases();
+            createSpatialUI();
 
-            controls = new THREE.DeviceOrientationControls(camera);
+            // Modo escritorio / pre-VR
+            mouseControls = new THREE.OrbitControls(camera, renderer.domElement);
+            mouseControls.enableZoom = true;
+            mouseControls.enablePan = true; 
+            mouseControls.enableDamping = true;
+            mouseControls.dampingFactor = 0.05;
 
+            window.addEventListener("gamepadconnected", (e) => { activeGamepad = e.gamepad.index; });
+            window.addEventListener("gamepaddisconnected", () => { activeGamepad = null; });
             window.addEventListener('resize', onWindowResize, false);
-            animate();
+            
+            renderUIElements(orgKeys[currentSelectedIndex]);
+
+            // En WebXR, la animación debe llamarse a través del loop interno del renderer, no por requestAnimationFrame clásico
+            renderer.setAnimationLoop(animate);
         }
 
         function createSpaceBackground(loader) {
-            // Esfera gigante que envuelve todo el entorno VR
             const backgroundGeometry = new THREE.SphereGeometry(90, 32, 32);
             const backgroundTexture = loader.load('textures/8k_stars_milky_way.jpg');
-            
-            const backgroundMaterial = new THREE.MeshBasicMaterial({
-                map: backgroundTexture,
-                side: THREE.BackSide // Renderiza la textura por dentro de la esfera
-            });
-            
+            const backgroundMaterial = new THREE.MeshBasicMaterial({ map: backgroundTexture, side: THREE.BackSide });
             const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
             scene.add(backgroundMesh);
         }
 
+        function setupTextCanvases() {
+            leftCanvas = document.createElement('canvas'); leftCanvas.width = canvasW; leftCanvas.height = canvasH;
+            leftCtx = leftCanvas.getContext('2d');
+            leftTexture = new THREE.CanvasTexture(leftCanvas);
+
+            rightCanvas = document.createElement('canvas'); rightCanvas.width = canvasW; rightCanvas.height = canvasH;
+            rightCtx = rightCanvas.getContext('2d');
+            rightTexture = new THREE.CanvasTexture(rightCanvas);
+
+            selectorCanvas = document.createElement('canvas'); selectorCanvas.width = 1024; selectorCanvas.height = 240;
+            selectorCtx = selectorCanvas.getContext('2d');
+            selectorTexture = new THREE.CanvasTexture(selectorCanvas);
+        }
+
+        function createSpatialUI() {
+            uiGroup = new THREE.Group();
+
+            const panelGeo = new THREE.PlaneGeometry(3.6, 3.6);
+            
+            // PANEL IZQUIERDO (Países)
+            const leftMat = new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide });
+            leftPanelMesh = new THREE.Mesh(panelGeo, leftMat);
+            leftPanelMesh.position.set(-4.0, 0.2, -0.8);
+            leftPanelMesh.rotation.y = 0.46; 
+            leftPanelMesh.userData = { type: "panel_izquierdo" };
+            uiGroup.add(leftPanelMesh);
+
+            // PANEL DERECHO (Información)
+            const rightMat = new THREE.MeshBasicMaterial({ map: rightTexture, transparent: true, side: THREE.DoubleSide });
+            rightPanelMesh = new THREE.Mesh(panelGeo, rightMat);
+            rightPanelMesh.position.set(4.0, 0.2, -0.8);
+            rightPanelMesh.rotation.y = -0.46; 
+            rightPanelMesh.userData = { type: "panel_derecho" };
+            uiGroup.add(rightPanelMesh);
+
+            // SELECTOR INFERIOR
+            const selectorGeo = new THREE.PlaneGeometry(4.2, 0.9);
+            const selectorMat = new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide });
+            selectorPanelMesh = new THREE.Mesh(selectorGeo, selectorMat);
+            selectorPanelMesh.position.set(0, -2.2, -0.2);
+            selectorPanelMesh.rotation.x = -0.3; 
+            selectorPanelMesh.userData = { type: "selector_fondo" };
+            uiGroup.add(selectorPanelMesh);
+
+            scene.add(uiGroup);
+        }
+
+        function renderUIElements(key) {
+            const data = orgData[key];
+            if (!data) return;
+
+            // --- PANEL IZQUIERDO ---
+            leftCtx.clearRect(0, 0, canvasW, canvasH);
+            leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
+            leftCtx.fillRect(0, 0, canvasW, canvasH);
+            leftCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; leftCtx.lineWidth = 26; leftCtx.strokeRect(0, 0, canvasW, canvasH);
+
+            leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 140px 'Segoe UI'";
+            leftCtx.fillText("PAÍSES MIEMBROS", 100, 200);
+
+            leftCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; leftCtx.lineWidth = 10;
+            leftCtx.beginPath(); leftCtx.moveTo(100, 260); leftCtx.lineTo(1948, 260); leftCtx.stroke();
+
+            const totalPaginas = Math.ceil(data.paises.length / paisesPorPagina);
+            const inicio = currentPaisPage * paisesPorPagina;
+            const fin = inicio + paisesPorPagina;
+            const paisesPaginaActual = data.paises.slice(inicio, fin);
+
+            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 105px 'Segoe UI'";
+            let yPos = 440;
+            paisesPaginaActual.forEach((customPais) => {
+                leftCtx.fillText(`• ${customPais}`, 120, yPos);
+                yPos += 170; 
+            });
+
+            leftCtx.fillStyle = "#00ffcc"; leftCtx.font = "bold 70px 'Segoe UI'";
+            leftCtx.fillText(`Pág: ${currentPaisPage + 1} / ${totalPaginas}  (Usa ▲▼ para scroll)`, 120, 1920);
+            leftTexture.needsUpdate = true;
+
+            // --- PANEL DERECHO ---
+            rightCtx.clearRect(0, 0, canvasW, canvasH);
+            rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
+            rightCtx.fillRect(0, 0, canvasW, canvasH);
+            rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26; rightCtx.strokeRect(0, 0, canvasW, canvasH);
+
+            rightCtx.fillStyle = "#ffffff";
+            rightCtx.fillRect(824, 80, 400, 400); 
+
+            rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 160px 'Segoe UI'";
+            rightCtx.textAlign = "center";
+            rightCtx.fillText(key.toUpperCase(), 1024, 650);
+            rightCtx.textAlign = "left"; 
+
+            rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
+            rightCtx.beginPath(); rightCtx.moveTo(100, 720); rightCtx.lineTo(1948, 720); rightCtx.stroke();
+
+            rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 110px 'Segoe UI'";
+            rightCtx.fillText(`Año de Fundación:`, 100, 890);
+            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "110px 'Segoe UI'";
+            rightCtx.fillText(data.anio, 1150, 890);
+
+            rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 110px 'Segoe UI'";
+            rightCtx.fillText("Historial y Aportes Mundiales:", 100, 1080);
+            
+            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "95px 'Segoe UI'";
+            wrapText(rightCtx, data.aportes, 100, 1260, 1848, 145);
+            
+            rightTexture.needsUpdate = true;
+
+            // --- PANEL SELECTOR INFERIOR ---
+            selectorCtx.clearRect(0, 0, 1024, 240);
+            selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
+            selectorCtx.fillRect(0, 0, 1024, 240);
+            selectorCtx.strokeStyle = "#007bff"; selectorCtx.lineWidth = 12; selectorCtx.strokeRect(0, 0, 1024, 240);
+
+            selectorCtx.fillStyle = "#00ffcc"; selectorCtx.font = "bold 42px 'Segoe UI'";
+            selectorCtx.textAlign = "center";
+            selectorCtx.fillText("◄   SELECCIONAR ORGANIZACIÓN (◄ ► en Control)   ►", 512, 75);
+
+            selectorCtx.fillStyle = "#ffffff"; selectorCtx.font = "bold 100px 'Segoe UI'";
+            selectorCtx.fillText(key, 512, 185);
+            
+            selectorCtx.textAlign = "left";
+            selectorTexture.needsUpdate = true;
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            let words = text.split(' ');
+            let line = '';
+            for (let n = 0; n < words.length; n++) {
+                let testLine = line + words[n] + ' ';
+                let metrics = context.measureText(testLine);
+                let testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, y);
+        }
+
+        function handleGamepadInput() {
+            if (activeGamepad === null) return;
+            const gamepads = navigator.getGamepads();
+            const gp = gamepads[activeGamepad];
+
+            if (gp) {
+                const stickLeftX = gp.axes[0];
+                const stickLeftY = gp.axes[1];
+                const deadzone = 0.15;
+
+                if (Math.abs(stickLeftX) > deadzone) {
+                    earth.rotation.y += stickLeftX * 0.03;
+                    clouds.rotation.y += stickLeftX * 0.03;
+                }
+                if (Math.abs(stickLeftY) > deadzone) {
+                    earth.rotation.x += stickLeftY * 0.03;
+                    clouds.rotation.x += stickLeftY * 0.03;
+                }
+
+                const buttonX = gp.buttons[0];
+                if (buttonX && buttonX.pressed) {
+                    if (!buttonPressedState) { 
+                        buttonPressedState = true;
+                        executeWorldGazeZoom(); 
+                    }
+                } else {
+                    buttonPressedState = false;
+                }
+
+                if (gp.buttons[12]?.pressed) {
+                    if (!dpadPressedState.up) {
+                        dpadPressedState.up = true;
+                        scrollPaises(-1);
+                    }
+                } else {
+                    dpadPressedState.up = false;
+                }
+
+                if (gp.buttons[13]?.pressed) {
+                    if (!dpadPressedState.down) {
+                        dpadPressedState.down = true;
+                        scrollPaises(1);
+                    }
+                } else {
+                    dpadPressedState.down = false;
+                }
+
+                if (gp.buttons[14]?.pressed) {
+                    if (!dpadPressedState.left) {
+                        dpadPressedState.left = true;
+                        navegarOrganizaciones(-1);
+                    }
+                } else {
+                    dpadPressedState.left = false;
+                }
+
+                if (gp.buttons[15]?.pressed) {
+                    if (!dpadPressedState.right) {
+                        dpadPressedState.right = true;
+                        navegarOrganizaciones(1);
+                    }
+                } else {
+                    dpadPressedState.right = false;
+                }
+            }
+        }
+
+        function scrollPaises(direccion) {
+            const data = orgData[orgKeys[currentSelectedIndex]];
+            const totalPaginas = Math.ceil(data.paises.length / paisesPorPagina);
+            
+            currentPaisPage += direccion;
+            if (currentPaisPage < 0) currentPaisPage = totalPaginas - 1;
+            if (currentPaisPage >= totalPaginas) currentPaisPage = 0;
+
+            renderUIElements(orgKeys[currentSelectedIndex]);
+        }
+
+        function navegarOrganizaciones(direccion) {
+            currentSelectedIndex += direccion;
+            if (currentSelectedIndex < 0) currentSelectedIndex = orgKeys.length - 1;
+            if (currentSelectedIndex >= orgKeys.length) currentSelectedIndex = 0;
+
+            currentPaisPage = 0; 
+            renderUIElements(orgKeys[currentSelectedIndex]);
+        }
+
+        function executeWorldGazeZoom() {
+            if (currentZoomObject !== null) {
+                currentZoomObject = null;
+                cameraTargetPos.copy(defaultCameraPos);
+                cameraTargetLookAt.set(0, 0, 0);
+                return;
+            }
+
+            camera.getWorldDirection(gazeDirection);
+            raycaster.set(camera.position, gazeDirection);
+            
+            const targets = [earth, leftPanelMesh, rightPanelMesh, selectorPanelMesh];
+            const intersects = raycaster.intersectObjects(targets);
+
+            if (intersects.length > 0) {
+                const hitObject = intersects[0].object;
+                
+                if (hitObject.userData.type === "earth") {
+                    currentZoomObject = "earth";
+                    cameraTargetPos.set(camera.position.x * 0.5, camera.position.y * 0.5, camera.position.z * 0.5);
+                    cameraTargetLookAt.set(0, 0, 0);
+                } 
+                else if (hitObject.userData.type === "panel_izquierdo") {
+                    currentZoomObject = "left_panel";
+                    cameraTargetPos.set(-2.0, 0.1, 1.4);
+                    cameraTargetLookAt.set(-4.0, 0.2, -0.8);
+                } 
+                else if (hitObject.userData.type === "panel_derecho") {
+                    currentZoomObject = "right_panel";
+                    cameraTargetPos.set(2.0, 0.1, 1.4);
+                    cameraTargetLookAt.set(4.0, 0.2, -0.8);
+                }
+                else if (hitObject.userData.type === "selector_fondo") {
+                    currentZoomObject = "selector_panel";
+                    cameraTargetPos.set(0, -1.1, 1.2);
+                    cameraTargetLookAt.set(0, -2.2, -0.2);
+                }
+            }
+        }
+
+        function updateCameraInterpolation() {
+            // Fuera de la inmersión activa el suavizado; WebXR gestiona la matriz de cámara en modo VR directamente
+            if (!renderer.xr.isPresenting) {
+                camera.position.lerp(cameraTargetPos, 0.05);
+                currentCameraLookAt.lerp(cameraTargetLookAt, 0.05);
+                if (currentZoomObject !== null) {
+                    camera.lookAt(currentCameraLookAt);
+                }
+            }
+        }
+
+        // Esta es la función loop que WebXR refresca de forma síncrona
         function animate() {
-            requestAnimationFrame(animate);
-
-            // Rotación independiente para la Tierra y las nubes
-            if (earth) {
-                earth.rotation.y += 0.001;
-            }
-            if (clouds) {
-                clouds.rotation.y += 0.0013; // Las nubes se mueven un poco más rápido
+            if (earth && currentZoomObject === null) {
+                earth.rotation.y += 0.0002;
+                clouds.rotation.y += 0.0004;
             }
 
-            if (controls) {
-                controls.update();
+            handleGamepadInput();
+            updateCameraInterpolation();
+
+            if (!renderer.xr.isPresenting && mouseControls && currentZoomObject === null) {
+                mouseControls.update();
             }
 
-            effect.render(scene, camera);
+            // El renderer renderiza de forma nativa la escena en la vista 360°/Ocular sin distorsionar el aspecto
+            renderer.render(scene, camera);
         }
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            effect.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        function activarPantallaCompleta() {
-            const docElm = document.documentElement;
-            if (docElm.requestFullscreen) docElm.requestFullscreen();
-            else if (docElm.mozRequestFullScreen) docElm.mozRequestFullScreen();
-            else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen();
-            else if (docElm.msRequestFullscreen) docElm.msRequestFullscreen();
-        }
+        const container = document.getElementById('canvas-container');
 
-        button.addEventListener('click', () => {
-            button.style.display = 'none';
-            activarPantallaCompleta();
-
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            init();
-                        } else {
-                            alert('Permiso de giroscopio denegado.');
-                        }
-                    })
-                    .catch(console.error);
-            } else {
-                init();
-            }
-        });
+        init();
     </script>
 </body>
 </html>
