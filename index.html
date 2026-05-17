@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VR 360 Earth Experience - Organizaciones Mundiales</title>
+    <title>VR Earth Experience - Organizaciones Mundiales</title>
     <style>
         body, html {
             margin: 0;
@@ -15,6 +15,21 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             position: relative;
         }
+        #permission-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 30;
+            box-shadow: 0px 4px 10px rgba(0,123,255,0.5);
+        }
         #canvas-container {
             width: 100vw;
             height: 100vh;
@@ -23,15 +38,48 @@
             left: 0;
             z-index: 1;
         }
-        /* El botón de VR nativo se inyectará abajo automáticamente via WebXR */
+        .v-reticle {
+            position: absolute;
+            top: 50%;
+            width: 6px;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            display: none;
+            pointer-events: none;
+            box-shadow: 0 0 4px #00ffcc;
+        }
+        #reticle-left { left: 25%; }
+        #reticle-right { left: 75%; }
+        
+        #reticle-pc {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            pointer-events: none;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/DeviceOrientationControls.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/webxr/VRButton.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/effects/StereoEffect.js"></script>
 </head>
 <body>
 
+    <button id="permission-btn">Iniciar Experiencia VR</button>
     <div id="canvas-container"></div>
+    
+    <div id="reticle-pc"></div>
+    <div id="reticle-left" class="v-reticle"></div>
+    <div id="reticle-right" class="v-reticle"></div>
 
     <script>
         const orgData = {
@@ -52,7 +100,7 @@
             "PNUMA": { anio: 1972, aportes: "Coordinar respuestas de conservación ambiental, monitorear de forma científica el cambio climático y proteger la biodiversidad de ecosistemas vulnerables.", paises: ["Kenia", "Estados Unidos", "Brasil", "México", "Colombia", "Canadá", "Francia", "Reino Unido", "Alemania", "España", "China", "India", "Japón", "Australia", "Sudáfrica"] },
             "UNESCO": { anio: 1945, aportes: "Preservación histórica del Patrimonio de la Humanidad, fomento internacional del desarrollo de la educación pública, la ciencia y la diversidad cultural.", paises: ["Francia", "Estados Unidos", "Reino Unido", "España", "Italia", "Alemania", "México", "Brasil", "Argentina", "Perú", "Egipto", "China", "Japón", "India", "Rusia"] },
             "UNICEF": { anio: 1946, aportes: "Garantizar protección médica, nutrición esencial, agua potable y desarrollo educativo infantil a niños vulnerables en situaciones de extrema crisis.", paises: ["Estados Unidos", "Canadá", "Brasil", "México", "Argentina", "Colombia", "Francia", "Reino Unido", "Alemania", "España", "Italia", "China", "India", "Japón", "Sudáfrica"] },
-            "UIT": { anio: 1865, aportes: "Regular y estandarizar las telecomunicaciones de radiofrecuencia mundiales, la administration del espacio satelital y el desarrollo global de redes de internet.", paises: ["Suiza", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Rusia", "China", "Japón", "India", "Brasil", "México", "Argentina", "Canadá"] }
+            "UIT": { anio: 1865, aportes: "Regular y estandarizar las telecomunicaciones de radiofrecuencia mundiales, la administración del espacio satelital y el desarrollo global de redes de internet.", paises: ["Suiza", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Rusia", "China", "Japón", "India", "Brasil", "México", "Argentina", "Canadá"] }
         };
 
         const orgKeys = Object.keys(orgData);
@@ -60,13 +108,14 @@
         let currentPaisPage = 0;
         const paisesPorPagina = 8;
 
-        let scene, camera, renderer, mouseControls;
+        let scene, camera, renderer, effect, vrControls, mouseControls;
         let earth, clouds, uiGroup;
         
         let leftPanelMesh, rightPanelMesh, selectorPanelMesh;
         let leftCanvas, leftCtx, rightCanvas, rightCtx, selectorCanvas, selectorCtx;
         let leftTexture, rightTexture, selectorTexture;
 
+        let isVR = false;
         let activeGamepad = null;
         let buttonPressedState = false;
         let dpadPressedState = { up: false, down: false, left: false, right: false };
@@ -90,16 +139,12 @@
             camera.position.copy(defaultCameraPos);
             scene.add(camera);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            
-            // CAMBIO CLAVE VR 360°: Habilitamos el soporte XR nativo del motor de renderizado
-            renderer.xr.enabled = true;
             container.appendChild(renderer.domElement);
 
-            // Inyectamos el botón oficial de WebXR en el documento para entrar a VR real
-            document.body.appendChild(VRButton.createButton(renderer));
+            effect = new THREE.StereoEffect(renderer);
+            effect.setSize(window.innerWidth, window.innerHeight);
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambientLight);
@@ -127,12 +172,13 @@
             setupTextCanvases();
             createSpatialUI();
 
-            // Modo escritorio / pre-VR
             mouseControls = new THREE.OrbitControls(camera, renderer.domElement);
             mouseControls.enableZoom = true;
             mouseControls.enablePan = true; 
             mouseControls.enableDamping = true;
             mouseControls.dampingFactor = 0.05;
+
+            vrControls = new THREE.DeviceOrientationControls(camera);
 
             window.addEventListener("gamepadconnected", (e) => { activeGamepad = e.gamepad.index; });
             window.addEventListener("gamepaddisconnected", () => { activeGamepad = null; });
@@ -140,8 +186,7 @@
             
             renderUIElements(orgKeys[currentSelectedIndex]);
 
-            // En WebXR, la animación debe llamarse a través del loop interno del renderer, no por requestAnimationFrame clásico
-            renderer.setAnimationLoop(animate);
+            animate();
         }
 
         function createSpaceBackground(loader) {
@@ -237,9 +282,13 @@
             rightCtx.fillRect(0, 0, canvasW, canvasH);
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26; rightCtx.strokeRect(0, 0, canvasW, canvasH);
 
+            // ARREGLO DIRECTO AQUÍ:
+            // Dibujamos un RECTÁNGULO convertido en CUADRADO PERFECTO (400x400) centrado horizontalmente
+            // Posicionado arriba (Y: 80) sin interferir con el texto.
             rightCtx.fillStyle = "#ffffff";
-            rightCtx.fillRect(824, 80, 400, 400); 
+            rightCtx.fillRect(824, 80, 400, 400); // 824 de X lo centra perfecto en un espacio de 2048
 
+            // Título colocado de forma segura abajo del cuadrado (Y: 650) para evitar colisiones
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 160px 'Segoe UI'";
             rightCtx.textAlign = "center";
             rightCtx.fillText(key.toUpperCase(), 1024, 650);
@@ -248,6 +297,7 @@
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 720); rightCtx.lineTo(1948, 720); rightCtx.stroke();
 
+            // Resto del contenido desplazado ordenadamente hacia la parte inferior
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 110px 'Segoe UI'";
             rightCtx.fillText(`Año de Fundación:`, 100, 890);
             rightCtx.fillStyle = "#ffffff"; rightCtx.font = "110px 'Segoe UI'";
@@ -424,18 +474,17 @@
         }
 
         function updateCameraInterpolation() {
-            // Fuera de la inmersión activa el suavizado; WebXR gestiona la matriz de cámara en modo VR directamente
-            if (!renderer.xr.isPresenting) {
-                camera.position.lerp(cameraTargetPos, 0.05);
-                currentCameraLookAt.lerp(cameraTargetLookAt, 0.05);
-                if (currentZoomObject !== null) {
-                    camera.lookAt(currentCameraLookAt);
-                }
+            camera.position.lerp(cameraTargetPos, 0.05);
+            currentCameraLookAt.lerp(cameraTargetLookAt, 0.05);
+            
+            if (currentZoomObject !== null) {
+                camera.lookAt(currentCameraLookAt);
             }
         }
 
-        // Esta es la función loop que WebXR refresca de forma síncrona
         function animate() {
+            requestAnimationFrame(animate);
+
             if (earth && currentZoomObject === null) {
                 earth.rotation.y += 0.0002;
                 clouds.rotation.y += 0.0004;
@@ -444,23 +493,63 @@
             handleGamepadInput();
             updateCameraInterpolation();
 
-            if (!renderer.xr.isPresenting && mouseControls && currentZoomObject === null) {
-                mouseControls.update();
+            if (isVR) {
+                if (vrControls) vrControls.update();
+                effect.render(scene, camera);
+            } else {
+                if (mouseControls && currentZoomObject === null) {
+                    mouseControls.update();
+                }
+                renderer.render(scene, camera);
             }
-
-            // El renderer renderiza de forma nativa la escena en la vista 360°/Ocular sin distorsionar el aspecto
-            renderer.render(scene, camera);
         }
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            effect.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function activarPantallaCompleta() {
+            const docElm = document.documentElement;
+            if (docElm.requestFullscreen) docElm.requestFullscreen();
+            else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen();
         }
 
         const container = document.getElementById('canvas-container');
+        const button = document.getElementById('permission-btn');
 
         init();
+
+        button.addEventListener('click', () => {
+            button.style.display = 'none';
+            isVR = true;
+            
+            if (mouseControls) {
+                mouseControls.enabled = false;
+                mouseControls.dispose();
+            }
+
+            document.getElementById('reticle-pc').style.display = 'none';
+            document.getElementById('reticle-left').style.display = 'block';
+            document.getElementById('reticle-right').style.display = 'block';
+
+            setTimeout(() => {
+                activarPantallaCompleta();
+                onWindowResize();
+            }, 100);
+
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState !== 'granted') {
+                            alert('Giroscopio denegado.');
+                        }
+                    })
+                    .catch(err => console.error(err));
+            }
+        });
     </script>
 </body>
 </html>
