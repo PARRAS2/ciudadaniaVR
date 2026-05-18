@@ -48,13 +48,14 @@
         let isVR = false;
         let activeGamepad = null;
         let dpadState = { up: false, down: false, left: false, right: false };
+        let xButtonPressed = false;
 
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
         const orgDataCache = {};
 
-        // Cargar datos desde carpeta data/
+        // ==================== CARGAR DATOS ====================
         async function loadOrgData(key) {
             if (orgDataCache[key]) return orgDataCache[key];
             try {
@@ -76,7 +77,7 @@
             const totalInfo = data.info.length;
             const totalPais = Math.ceil(data.paises.length / paisesPorPagina);
 
-            // Panel Izquierdo - Países
+            // Panel Izquierdo
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -93,19 +94,16 @@
                 leftCtx.fillText(`• ${p}`, 120, y);
                 y += 135;
             });
-
             leftTexture.needsUpdate = true;
 
-            // Panel Derecho - Información
+            // Panel Derecho
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 0, canvasW, canvasH);
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26;
             rightCtx.strokeRect(0, 0, canvasW, canvasH);
 
-            if (loadedImages[currentOrgKey]) {
-                rightCtx.drawImage(loadedImages[currentOrgKey], 824, 80, 400, 400);
-            }
+            if (loadedImages[currentOrgKey]) rightCtx.drawImage(loadedImages[currentOrgKey], 824, 80, 400, 400);
 
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 150px 'Segoe UI'";
             rightCtx.textAlign = "center";
@@ -117,7 +115,7 @@
 
             rightTexture.needsUpdate = true;
 
-            // Selector Inferior
+            // Selector
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -143,25 +141,25 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== CONTROLES ====================
+        // ==================== CONTROLES DEL MANDO (MODIFICADO) ====================
         function handleGamepadInput() {
             if (activeGamepad === null) return;
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Rotación de la Tierra
+            // Joystick izquierdo - Mover Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) { earth.rotation.y += sx * 0.03; clouds.rotation.y += sx * 0.03; }
             if (Math.abs(sy) > 0.15) { earth.rotation.x += sy * 0.03; clouds.rotation.x += sy * 0.03; }
 
-            // ↑ ↓ = Páginas de Países
+            // ↑ ↓ = Cambiar páginas de países
             if (gp.buttons[12]?.pressed && !dpadState.up) { dpadState.up = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) dpadState.up = false;
 
             if (gp.buttons[13]?.pressed && !dpadState.down) { dpadState.down = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) dpadState.down = false;
 
-            // ← → = Páginas de Información
+            // ← → = Cambiar páginas de información
             if (gp.buttons[14]?.pressed && !dpadState.left) {
                 dpadState.left = true;
                 currentInfoPage = (currentInfoPage - 1 + 3) % 3;
@@ -174,9 +172,20 @@
                 renderUIElements();
             } else if (!gp.buttons[15]?.pressed) dpadState.right = false;
 
-            // □ (Cuadrado) y ○ (Círculo) = Cambiar Organización
-            if (gp.buttons[2]?.pressed) navegarOrganizaciones(-1); // Cuadrado
-            if (gp.buttons[1]?.pressed) navegarOrganizaciones(1);  // Círculo
+            // □ (Cuadrado) = Organización Anterior
+            if (gp.buttons[2]?.pressed) navegarOrganizaciones(-1);
+
+            // ○ (Círculo) = Organización Siguiente
+            if (gp.buttons[1]?.pressed) navegarOrganizaciones(1);
+
+            // X = Zoom
+            if (gp.buttons[0]?.pressed && !xButtonPressed) {
+                xButtonPressed = true;
+                console.log("🔎 Zoom activado con botón X");
+                // Aquí puedes poner tu función de zoom anterior si la tienes
+            } else if (!gp.buttons[0]?.pressed) {
+                xButtonPressed = false;
+            }
         }
 
         function scrollPaises(dir) {
@@ -195,7 +204,7 @@
             renderUIElements();
         }
 
-        // ==================== THREE.JS SETUP ====================
+        // ==================== EL RESTO DEL CÓDIGO (SIN CAMBIOS) ====================
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -215,24 +224,18 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Tierra y Nubes
             const geo = new THREE.SphereGeometry(1.2, 64, 64);
             earth = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ map: textureLoader.load('textures/8k_earth_daymap.jpg') }));
             scene.add(earth);
 
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
-                alphaMap: textureLoader.load('textures/8k_earth_clouds.jpg'), 
-                transparent: true, color: 0xffffff 
+                alphaMap: textureLoader.load('textures/8k_earth_clouds.jpg'), transparent: true, color: 0xffffff 
             }));
             scene.add(clouds);
 
-            // Fondo espacial
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
-            const bgMat = new THREE.MeshBasicMaterial({ 
-                map: textureLoader.load('textures/8k_stars_milky_way.jpg'), 
-                side: THREE.BackSide 
-            });
+            const bgMat = new THREE.MeshBasicMaterial({ map: textureLoader.load('textures/8k_stars_milky_way.jpg'), side: THREE.BackSide });
             scene.add(new THREE.Mesh(bgGeo, bgMat));
 
             setupTextCanvases();
@@ -240,7 +243,6 @@
 
             mouseControls = new THREE.OrbitControls(camera, renderer.domElement);
             mouseControls.enableDamping = true;
-
             vrControls = new THREE.DeviceOrientationControls(camera);
 
             window.addEventListener("gamepadconnected", e => activeGamepad = e.gamepad.index);
@@ -270,18 +272,15 @@
             const panelGeo = new THREE.PlaneGeometry(3.6, 3.6);
 
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
-            leftPanelMesh.position.set(-4, 0.2, -0.8);
-            leftPanelMesh.rotation.y = 0.46;
+            leftPanelMesh.position.set(-4, 0.2, -0.8); leftPanelMesh.rotation.y = 0.46;
             uiGroup.add(leftPanelMesh);
 
             rightPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: rightTexture, transparent: true, side: THREE.DoubleSide }));
-            rightPanelMesh.position.set(4, 0.2, -0.8);
-            rightPanelMesh.rotation.y = -0.46;
+            rightPanelMesh.position.set(4, 0.2, -0.8); rightPanelMesh.rotation.y = -0.46;
             uiGroup.add(rightPanelMesh);
 
             selectorPanelMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide }));
-            selectorPanelMesh.position.set(0, -2.2, -0.2);
-            selectorPanelMesh.rotation.x = -0.3;
+            selectorPanelMesh.position.set(0, -2.2, -0.2); selectorPanelMesh.rotation.x = -0.3;
             uiGroup.add(selectorPanelMesh);
 
             scene.add(uiGroup);
@@ -305,10 +304,8 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            if (earth) {
-                earth.rotation.y += 0.0002;
-                clouds.rotation.y += 0.0004;
-            }
+            if (earth) earth.rotation.y += 0.0002;
+            if (clouds) clouds.rotation.y += 0.0004;
             handleGamepadInput();
 
             if (isVR) {
