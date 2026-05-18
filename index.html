@@ -48,10 +48,14 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        // ==================== CONFIGURACIÓN DE RUTAS LOCALES RELATIVAS ====================
-        let DATA_FOLDER_URL = "./datos/"; // Intento inicial
-        const TEXTURES_FOLDER_URL = "./texturas/";
-        const LOGOS_FOLDER_URL = "./logotipos/";
+        // ==================== ENRUTAMIENTO INTELIGENTE AUTOMÁTICO ====================
+        // Detecta dinámicamente si el proyecto corre desde la raíz o dentro de la subcarpeta 'ciudadaniaVR'
+        const currentPath = window.location.pathname;
+        const basePath = currentPath.includes('ciudadaniaVR') ? './' : './ciudadaniaVR/';
+
+        const DATA_FOLDER_URL = `${basePath}datos/`; 
+        const TEXTURES_FOLDER_URL = `${basePath}texturas/`;
+        const LOGOS_FOLDER_URL = `${basePath}logotipos/`;
         
         const orgKeys = [
             "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
@@ -109,19 +113,8 @@
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
 
-        // ==================== CARGA DINÁMICA ASÍNCRONA CON FALLBACK AUTODETECTABLE ====================
+        // ==================== CARGA DE DATOS ASÍNCRONA ====================
         async function loadAllOrganizationData() {
-            // Verificamos si la carpeta es 'datos' o 'data' probando el primer archivo
-            try {
-                let response = await fetch(`${DATA_FOLDER_URL}${orgKeys[0]}.json`);
-                if (!response.ok) {
-                    // Si falla con './datos/', cambiamos automáticamente a './data/'
-                    DATA_FOLDER_URL = "./data/";
-                }
-            } catch (e) {
-                DATA_FOLDER_URL = "./data/";
-            }
-
             const fetchPromises = orgKeys.map(async (key) => {
                 try {
                     const response = await fetch(`${DATA_FOLDER_URL}${key}.json`);
@@ -135,11 +128,11 @@
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
-                    // Datos por defecto si el JSON falla por completo, para que NUNCA se quede la interfaz vacía
+                    // Datos de contingencia local si el fetch es bloqueado o no encuentra el archivo JSON
                     orgData[key] = { 
                         anio: 2026, 
                         imagen: `${LOGOS_FOLDER_URL}${key}.jpg`, 
-                        info: [`Información de la organización ${key}. Comprueba tus archivos JSON en la carpeta local.`], 
+                        info: [`Información base de ${key}. Asegúrate de cargar el archivo JSON correspondiente en tu servidor.`], 
                         paises: ["Ecuador", "Colombia", "Perú", "Argentina", "Chile", "México"] 
                     };
                 }
@@ -149,7 +142,7 @@
             preloadImagesAndRender();
         }
 
-        // ==================== INICIALIZACIÓN THREE.JS ====================
+        // ==================== INICIALIZACIÓN DE ESCENA THREE.JS ====================
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -163,7 +156,8 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x333333, 1.0);
+            // Iluminación global mejorada para evitar esferas negras
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
             hemiLight.position.set(0, 20, 0);
             scene.add(hemiLight);
 
@@ -171,15 +165,19 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
+            // Carga del mapa base planetario con la nueva ruta corregida
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`); 
+            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`, undefined, undefined, (err) => {
+                console.error("No se pudo cargar la textura predeterminada de la Tierra.");
+            }); 
             
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ 
                 map: defaultEarthTexture, 
-                shininess: 15 
+                shininess: 20 
             }));
             scene.add(earth);
 
+            // Capa de nubes
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
             const cloudsTex = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_clouds.jpg`); 
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
@@ -217,7 +215,8 @@
                 }, 
                 undefined, 
                 () => {
-                    const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: 0x02040a, side: THREE.BackSide }));
+                    // Respaldo de color sólido si el fondo estelar falla
+                    const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: 0x050814, side: THREE.BackSide }));
                     scene.add(bgMesh);
                 }
             );
@@ -267,7 +266,7 @@
             scene.add(uiGroup);
         }
 
-        // ==================== PRECARGA ASEGURADA ====================
+        // ==================== PRECARGA MULTIMEDIA CONTROLADA ====================
         function preloadImagesAndRender() {
             let loaded = 0;
             const totalAssets = orgKeys.length * 2;
@@ -315,7 +314,7 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERIZADO DE TEXTO SEGURO ====================
+        // ==================== RENDERIZADO GRÁFICO DE TEXTOS EN LOS PANELES ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
@@ -327,17 +326,17 @@
 
             // --- INTERFAZ SUPERIOR ---
             siglasCtx.clearRect(0, 0, 1500, 300);
-            siglasCtx.fillStyle = "rgba(10, 16, 36, 0.85)";
+            siglasCtx.fillStyle = "rgba(10, 16, 36, 0.88)";
             siglasCtx.beginPath(); siglasCtx.roundRect(0, 0, 1500, 300, 40); siglasCtx.fill();
             siglasCtx.strokeStyle = "rgba(0, 162, 255, 0.8)"; siglasCtx.lineWidth = 8; siglasCtx.stroke();
             
-            siglasCtx.fillStyle = "#ffffff"; siglasCtx.font = "bold 58px 'Segoe UI'";
+            siglasCtx.fillStyle = "#ffffff"; siglasCtx.font = "bold 54px 'Segoe UI'";
             siglasCtx.textAlign = "center";
             const significado = diccionarioSiglas[key] || key;
             wrapText(siglasCtx, significado, 750, 110, 1350, 80);
             siglasTexture.needsUpdate = true;
 
-            // --- PANEL IZQUIERDO ---
+            // --- PANEL IZQUIERDO (PAÍSES) ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -361,7 +360,7 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO ---
+            // --- PANEL DERECHO (INFORMACIÓN Y LOGO) ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
@@ -400,7 +399,7 @@
             rightCtx.fillText(`Info ${currentInfoPage + 1} de ${totalInfoPages}`, 1948, 1950);
             rightTexture.needsUpdate = true;
 
-            // --- PANEL INFERIOR ---
+            // --- PANEL INFERIOR (SELECTOR CENTRAL) ---
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
