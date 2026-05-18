@@ -1,12 +1,28 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "Cruz Roja",
+  "anio": 1863,
   "imagen": "logos/Cruz Roja.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "El Movimiento Internacional de la Cruz Roja y de la Media Luna Roja fue fundado en 1863 por Henry Dunant tras presenciar la batalla de Solferino. Es uno de los movimientos humanitarios más antiguos y grandes del mundo.",
+    "Está compuesto por el Comité Internacional de la Cruz Roja (CICR), las Sociedades Nacionales de la Cruz Roja y la Media Luna Roja, y la Federación Internacional. Se rige por los 7 Principios Fundamentales: Humanidad, Imparcialidad, Neutralidad, Independencia, Voluntariado, Unidad y Universalidad.",
+    "Brinda asistencia humanitaria neutral en conflictos armados, desastres naturales y emergencias. Ofrece atención médica, agua, saneamiento, ayuda alimentaria, restablecimiento de contactos familiares y promueve el Derecho Internacional Humanitario."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Andorra", "Angola", "Antigua y Barbuda", "Arabia Saudita", "Argelia", "Argentina", "Armenia",
+    "Australia", "Austria", "Azerbaiyán", "Bahamas", "Bangladesh", "Barbados", "Bélgica", "Belice", "Benín", "Bolivia",
+    "Bosnia y Herzegovina", "Botswana", "Brasil", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Camboya", "Camerún", "Canadá",
+    "Chile", "China", "Colombia", "Comoras", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca",
+    "Ecuador", "Egipto", "El Salvador", "Emiratos Árabes Unidos", "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia",
+    "Francia", "Gabón", "Gambia", "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Guyana", "Haití",
+    "Honduras", "Hungría", "India", "Indonesia", "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Jamaica",
+    "Japón", "Jordania", "Kazajistán", "Kenya", "Kirguistán", "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano",
+    "Liberia", "Libia", "Liechtenstein", "Lituania", "Luxemburgo", "Macedonia del Norte", "Madagascar", "Malasia", "Malawi", "Malí",
+    "Malta", "Marruecos", "Mauricio", "Mauritania", "México", "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar",
+    "Namibia", "Nepal", "Nicaragua", "Níger", "Nigeria", "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán",
+    "Panamá", "Papúa Nueva Guinea", "Paraguay", "Perú", "Polonia", "Portugal", "Qatar", "Reino Unido", "República Centroafricana", "República Checa",
+    "República Dominicana", "Rumania", "Rusia", "Ruanda", "San Marino", "Senegal", "Serbia", "Sierra Leona", "Singapur", "Siria",
+    "Somalia", "Sri Lanka", "Sudáfrica", "Sudán", "Sudán del Sur", "Suecia", "Suiza", "Surinam", "Tailandia", "Tanzania",
+    "Tayikistán", "Timor Oriental", "Togo", "Trinidad y Tobago", "Túnez", "Turquía", "Turkmenistán", "Ucrania", "Uganda", "Uruguay",
+    "Uzbekistán", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
