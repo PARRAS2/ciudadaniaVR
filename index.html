@@ -62,7 +62,7 @@
         let currentPaisPage = 0;
         let currentInfoPage = 0;
         
-        // Ajustado a 9 países por página para asegurar un acople perfecto con la fuente grande
+        // Mantenemos una cantidad controlada por página para que con la fuente grande se lea increíble
         const paisesPorPagina = 9; 
 
         let scene, camera, renderer, effect, vrControls, mouseControls;
@@ -182,7 +182,11 @@
 
         function createSpatialUI() {
             uiGroup = new THREE.Group();
-            const panelGeo = new THREE.PlaneGeometry(3.6, 3.6);
+            
+            // === MODIFICACIÓN CRÍTICA: Aumentamos la altura de los paneles de 3.6 a 4.8 en el espacio 3D ===
+            const panelW = 3.6;
+            const panelH = 4.8; 
+            const panelGeo = new THREE.PlaneGeometry(panelW, panelH);
 
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
             leftPanelMesh.position.set(-4.0, 0.2, -0.8);
@@ -195,7 +199,8 @@
             uiGroup.add(rightPanelMesh);
 
             selectorPanelMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide }));
-            selectorPanelMesh.position.set(0, -2.2, -0.2);
+            // Bajamos un poco el selector para que no choque con las tarjetas ahora que son más largas hacia abajo
+            selectorPanelMesh.position.set(0, -2.5, -0.2); 
             selectorPanelMesh.rotation.x = -0.3;
             uiGroup.add(selectorPanelMesh);
 
@@ -233,7 +238,7 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERING CANVASES (UI AJUSTADA) ====================
+        // ==================== RENDERING CANVASES (UI TOTALMENTE AJUSTADA) ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
@@ -253,7 +258,7 @@
             let yPais = 440;
             data.paises.slice(startPais, startPais + paisesPorPagina).forEach(p => {
                 leftCtx.fillText(`• ${p}`, 120, yPais);
-                yPais += 165; // Ajustado perfectamente para que no se peguen
+                yPais += 165; 
             });
             
             const totalPaisPages = Math.ceil(data.paises.length / paisesPorPagina) || 1;
@@ -261,21 +266,20 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO: INFORMACIÓN Y LOGO SOBRESALIENTE ---
+            // --- PANEL DERECHO: INFORMACIÓN (ACOPLE PERFECTO CON EL NUEVO PLANO LARGO) ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             
-            // Dibujamos el fondo de la tarjeta principal un poco más abajo (Y=300) para dejar que el logo sobresalga arriba
+            // Render del cuerpo del panel
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26;
             rightCtx.strokeRect(0, 300, canvasW, canvasH - 300);
 
-            // LOGO: Aumentado considerablemente de tamaño (500x500) y movido hacia arriba (Y=50) sobresaliendo
+            // LOGO: Grandioso y sobresaliendo elegantemente por la parte superior
             const logoSize = 500;
             const logoX = (canvasW - logoSize) / 2;
             const logoY = 50; 
 
-            // Fondo estético y borde brillante para el logo que sobresale
             rightCtx.fillStyle = "rgba(10, 18, 36, 1)";
             rightCtx.fillRect(logoX - 15, logoY - 15, logoSize + 30, logoSize + 30);
             rightCtx.strokeStyle = "#00a2ff"; rightCtx.lineWidth = 16;
@@ -285,23 +289,24 @@
                 rightCtx.drawImage(loadedImages[key], logoX, logoY, logoSize, logoSize);
             }
 
-            // Nombre de la organización adaptado a la nueva posición más baja
+            // Nombre de la organización centrado debajo de la pestaña flotante del logo
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 155px 'Segoe UI'";
             rightCtx.textAlign = "center";
             rightCtx.fillText(key.toUpperCase(), 1024, 690);
 
-            // Línea divisoria decorativa empujada hacia abajo
+            // Línea de división de títulos
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 760); rightCtx.lineTo(1948, 760); rightCtx.stroke();
 
-            // Texto descriptivo con interlineado corregido y amplio margen inferior
+            // TEXTO PRINCIPAL: Se renderiza con un interlineado excelente (165) sin preocuparse por desbordamientos
             rightCtx.fillStyle = "#ffffff"; rightCtx.font = "115px 'Segoe UI'"; 
             rightCtx.textAlign = "left";
             
             const textoPaginaActual = data.info[currentInfoPage] || "";
-            // Y inicial colocada a 930 para que fluya de manera natural sin encimarse
+            // El texto inicia fluidamente en Y=930. Al ser el plano 3D más largo, se acopla completo en la pantalla virtual
             wrapText(rightCtx, textoPaginaActual, 100, 930, 1840, 165); 
 
+            // Indicador numérico de página de información
             const totalInfoPages = data.info.length || 1;
             rightCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; rightCtx.font = "70px 'Segoe UI'";
             rightCtx.textAlign = "right";
@@ -356,7 +361,7 @@
                 clouds.rotation.x += sy * 0.03;
             }
 
-            // Zoom Dinámico con Joystick Derecho
+            // Zoom Dinámico con Joystick Derecho (Hacia donde apunta el visor)
             const zoomAxis = gp.axes[3]; 
             if (Math.abs(zoomAxis) > 0.15) {
                 const direction = new THREE.Vector3();
