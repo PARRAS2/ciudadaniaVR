@@ -49,7 +49,7 @@
 
     <script>
         // ==================== CONFIGURACIÓN DE RUTAS LOCALES RELATIVAS ====================
-        const DATA_FOLDER_URL = "./datos/"; 
+        let DATA_FOLDER_URL = "./datos/"; // Intento inicial
         const TEXTURES_FOLDER_URL = "./texturas/";
         const LOGOS_FOLDER_URL = "./logotipos/";
         
@@ -109,12 +109,23 @@
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
 
-        // ==================== CARGA DINÁMICA ASÍNCRONA ====================
+        // ==================== CARGA DINÁMICA ASÍNCRONA CON FALLBACK AUTODETECTABLE ====================
         async function loadAllOrganizationData() {
+            // Verificamos si la carpeta es 'datos' o 'data' probando el primer archivo
+            try {
+                let response = await fetch(`${DATA_FOLDER_URL}${orgKeys[0]}.json`);
+                if (!response.ok) {
+                    // Si falla con './datos/', cambiamos automáticamente a './data/'
+                    DATA_FOLDER_URL = "./data/";
+                }
+            } catch (e) {
+                DATA_FOLDER_URL = "./data/";
+            }
+
             const fetchPromises = orgKeys.map(async (key) => {
                 try {
                     const response = await fetch(`${DATA_FOLDER_URL}${key}.json`);
-                    if (!response.ok) throw new Error(`No se pudo leer localmente: ${key}.json`);
+                    if (!response.ok) throw new Error();
                     const json = await response.json();
                     
                     orgData[key] = {
@@ -124,8 +135,13 @@
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
-                    console.error(`Error procesando los datos de: ${key}`, error);
-                    orgData[key] = { anio: 2026, imagen: `${LOGOS_FOLDER_URL}${key}.jpg`, info: ["Error al cargar información."], paises: [] };
+                    // Datos por defecto si el JSON falla por completo, para que NUNCA se quede la interfaz vacía
+                    orgData[key] = { 
+                        anio: 2026, 
+                        imagen: `${LOGOS_FOLDER_URL}${key}.jpg`, 
+                        info: [`Información de la organización ${key}. Comprueba tus archivos JSON en la carpeta local.`], 
+                        paises: ["Ecuador", "Colombia", "Perú", "Argentina", "Chile", "México"] 
+                    };
                 }
             });
 
@@ -155,11 +171,8 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Carga con ruta explícita segura
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`, undefined, undefined, (err) => {
-                console.error("Error crítico: No se pudo cargar el mapa base de la tierra.");
-            }); 
+            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`); 
             
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ 
                 map: defaultEarthTexture, 
@@ -167,11 +180,8 @@
             }));
             scene.add(earth);
 
-            // Capa de nubes
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTex = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_clouds.jpg`, undefined, undefined, () => {
-                console.warn("Falta archivo de nubes opcional.");
-            }); 
+            const cloudsTex = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_clouds.jpg`); 
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
                 alphaMap: cloudsTex, 
                 transparent: true, 
@@ -207,7 +217,6 @@
                 }, 
                 undefined, 
                 () => {
-                    // Si el fondo estelar da 404, se aplica un color azul oscuro/negro espacial de respaldo para no romper la app
                     const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: 0x02040a, side: THREE.BackSide }));
                     scene.add(bgMesh);
                 }
@@ -258,20 +267,18 @@
             scene.add(uiGroup);
         }
 
-        // ==================== PRECARGA DE IMÁGENES Y TEXTURAS DINÁMICAS ====================
+        // ==================== PRECARGA ASEGURADA ====================
         function preloadImagesAndRender() {
             let loaded = 0;
             const totalAssets = orgKeys.length * 2;
 
             orgKeys.forEach(key => {
-                // 1. Carga de logos
                 const img = new Image();
                 img.src = orgData[key].imagen;
                 img.onload = () => { checkAssetsLoaded(); };
                 img.onerror = () => { checkAssetsLoaded(); };
                 loadedImages[key] = img;
 
-                // 2. Carga controlada de mapas de organizaciones
                 textureLoader.load(
                     `${TEXTURES_FOLDER_URL}${key}.png`,
                     (tex) => {
@@ -280,7 +287,6 @@
                     },
                     undefined,
                     () => {
-                        // Respaldo silencioso si la textura del país no existe en el servidor
                         loadedTextures[key] = defaultEarthTexture; 
                         checkAssetsLoaded();
                     }
@@ -309,7 +315,7 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERING CANVASES (UI) ====================
+        // ==================== RENDERIZADO DE TEXTO SEGURO ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
@@ -319,7 +325,7 @@
                 earth.material.needsUpdate = true;
             }
 
-            // --- INTERFAZ SOBRE EL PLANETA ---
+            // --- INTERFAZ SUPERIOR ---
             siglasCtx.clearRect(0, 0, 1500, 300);
             siglasCtx.fillStyle = "rgba(10, 16, 36, 0.85)";
             siglasCtx.beginPath(); siglasCtx.roundRect(0, 0, 1500, 300, 40); siglasCtx.fill();
@@ -331,7 +337,7 @@
             wrapText(siglasCtx, significado, 750, 110, 1350, 80);
             siglasTexture.needsUpdate = true;
 
-            // --- PANEL IZQUIERDO: PAÍSES ---
+            // --- PANEL IZQUIERDO ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -355,7 +361,7 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO: INFORMACIÓN ---
+            // --- PANEL DERECHO ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
@@ -394,7 +400,7 @@
             rightCtx.fillText(`Info ${currentInfoPage + 1} de ${totalInfoPages}`, 1948, 1950);
             rightTexture.needsUpdate = true;
 
-            // --- PANEL INFERIOR: SELECTOR ---
+            // --- PANEL INFERIOR ---
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -406,7 +412,7 @@
             selectorTexture.needsUpdate = true;
         }
 
-        // ==================== INTERACCIONES Y PÁGINAS ====================
+        // ==================== INTERACCIONES ====================
         function scrollPaises(dir) {
             const total = Math.ceil(orgData[orgKeys[currentSelectedIndex]].paises.length / paisesPorPagina) || 1;
             currentPaisPage = (currentPaisPage + dir + total) % total;
@@ -431,18 +437,10 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Joystick Izquierdo: Mover la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
-            if (Math.abs(sx) > 0.15) {
-                earth.rotation.y += sx * 0.03;
-                clouds.rotation.y += sx * 0.03;
-            }
-            if (Math.abs(sy) > 0.15) {
-                earth.rotation.x += sy * 0.03;
-                clouds.rotation.x += sy * 0.03;
-            }
+            if (Math.abs(sx) > 0.15) { earth.rotation.y += sx * 0.03; clouds.rotation.y += sx * 0.03; }
+            if (Math.abs(sy) > 0.15) { earth.rotation.x += sy * 0.03; clouds.rotation.x += sy * 0.03; }
 
-            // Joystick Derecho: Zoom Progresivo
             const zoomAxis = gp.axes[3]; 
             if (Math.abs(zoomAxis) > 0.15) {
                 const direction = new THREE.Vector3();
@@ -450,28 +448,22 @@
                 camera.position.addScaledVector(direction, -zoomAxis * 0.12);
 
                 const distanciaAlCentro = camera.position.length();
-                if (distanciaAlCentro < MIN_ZOOM_DIST) {
-                    camera.position.setLength(MIN_ZOOM_DIST);
-                } else if (distanciaAlCentro > MAX_ZOOM_DIST) {
-                    camera.position.setLength(MAX_ZOOM_DIST);
-                }
+                if (distanciaAlCentro < MIN_ZOOM_DIST) camera.position.setLength(MIN_ZOOM_DIST);
+                else if (distanciaAlCentro > MAX_ZOOM_DIST) camera.position.setLength(MAX_ZOOM_DIST);
             }
 
-            // D-Pad Arriba/Abajo -> Páginas de PAÍSES
             if (gp.buttons[12]?.pressed && !buttonPressedState.dpadUp) { buttonPressedState.dpadUp = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) buttonPressedState.dpadUp = false;
 
             if (gp.buttons[13]?.pressed && !buttonPressedState.dpadDown) { buttonPressedState.dpadDown = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) buttonPressedState.dpadDown = false;
 
-            // D-Pad Izquierda/Derecha -> Páginas de INFORMACIÓN
             if (gp.buttons[14]?.pressed && !buttonPressedState.dpadLeft) { buttonPressedState.dpadLeft = true; scrollInfo(-1); }
             else if (!gp.buttons[14]?.pressed) buttonPressedState.dpadLeft = false;
 
             if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) { buttonPressedState.dpadRight = true; scrollInfo(1); }
             else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
 
-            // Botones Cuadrado / Círculo -> Cambiar de Organización
             if (gp.buttons[2]?.pressed && !buttonPressedState.square) { buttonPressedState.square = true; navegarOrganizaciones(-1); }
             else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
 
