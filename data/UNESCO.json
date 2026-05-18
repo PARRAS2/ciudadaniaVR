@@ -1,12 +1,27 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "UNESCO",
+  "anio": 1945,
   "imagen": "logos/UNESCO.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "La Organización de las Naciones Unidas para la Educación, la Ciencia y la Cultura (UNESCO) fue fundada el 16 de noviembre de 1945 en Londres. Su lema es \"Construir la paz en la mente de los hombres y las mujeres\".",
+    "Promueve la cooperación internacional en educación, ciencias, cultura, comunicación e información. Es responsable de proteger el Patrimonio Mundial de la Humanidad (sitios culturales y naturales), impulsar la educación de calidad y defender la libertad de expresión y la diversidad cultural.",
+    "Entre sus logros más importantes están el Programa de Patrimonio Mundial, el Día Mundial de la Libertad de Prensa, y programas de alfabetización y preservación de lenguas indígenas."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Andorra", "Angola", "Antigua y Barbuda", "Arabia Saudita", "Argelia", "Argentina", "Armenia",
+    "Australia", "Austria", "Azerbaiyán", "Bahamas", "Bangladesh", "Barbados", "Bélgica", "Belice", "Benín", "Bolivia",
+    "Bosnia y Herzegovina", "Botswana", "Brasil", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Camboya", "Camerún", "Canadá",
+    "Chile", "China", "Colombia", "Comoras", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca",
+    "Ecuador", "Egipto", "El Salvador", "Emiratos Árabes Unidos", "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia",
+    "Francia", "Gabón", "Gambia", "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Guyana", "Haití",
+    "Honduras", "Hungría", "India", "Indonesia", "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Jamaica",
+    "Japón", "Jordania", "Kazajistán", "Kenya", "Kirguistán", "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano",
+    "Liberia", "Libia", "Liechtenstein", "Lituania", "Luxemburgo", "Macedonia del Norte", "Madagascar", "Malasia", "Malawi", "Malí",
+    "Malta", "Marruecos", "Mauricio", "Mauritania", "México", "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar",
+    "Namibia", "Nepal", "Nicaragua", "Níger", "Nigeria", "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán",
+    "Panamá", "Paraguay", "Perú", "Polonia", "Portugal", "Qatar", "Reino Unido", "República Checa", "Rumania", "Rusia",
+    "Ruanda", "San Marino", "Senegal", "Serbia", "Singapur", "Siria", "Sri Lanka", "Sudáfrica", "Sudán", "Suecia",
+    "Suiza", "Surinam", "Tailandia", "Tanzania", "Túnez", "Turquía", "Ucrania", "Uganda", "Uruguay", "Uzbekistán",
+    "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
