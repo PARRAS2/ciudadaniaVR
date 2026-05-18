@@ -48,8 +48,10 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        // ==================== CONFIGURACIÓN DE RUTAS LOCALES ====================
-        const DATA_FOLDER_URL = "./datos/"; // Corregido según tu GitHub que usa 'datos'
+        // ==================== CONFIGURACIÓN DE RUTAS LOCALES RELATIVAS ====================
+        const DATA_FOLDER_URL = "./datos/"; 
+        const TEXTURES_FOLDER_URL = "./texturas/";
+        const LOGOS_FOLDER_URL = "./logotipos/";
         
         const orgKeys = [
             "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
@@ -117,14 +119,13 @@
                     
                     orgData[key] = {
                         anio: json.anio || json.año || 2026,
-                        // CORREGIDO: Apunta a 'logotipos' en lugar de 'logos' según tu GitHub
-                        imagen: json.imagen || `logotipos/${key}.jpg`, 
+                        imagen: json.imagen || `${LOGOS_FOLDER_URL}${key}.jpg`, 
                         info: Array.isArray(json.info) ? json.info : [json.info],
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
                     console.error(`Error procesando los datos de: ${key}`, error);
-                    orgData[key] = { anio: 2026, imagen: `logotipos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
+                    orgData[key] = { anio: 2026, imagen: `${LOGOS_FOLDER_URL}${key}.jpg`, info: ["Error al cargar información."], paises: [] };
                 }
             });
 
@@ -146,8 +147,7 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            // OPTIMIZACIÓN DE LUZ: HemisphereLight evita que los materiales oscuros se vuelvan negros absolutos
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x333333, 1.0);
             hemiLight.position.set(0, 20, 0);
             scene.add(hemiLight);
 
@@ -155,18 +155,23 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // CORREGIDO: Carga de textura base .png según tu estructura exacta
+            // Carga con ruta explícita segura
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            defaultEarthTexture = textureLoader.load('texturas/8k_earth_daymap.png'); 
+            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`, undefined, undefined, (err) => {
+                console.error("Error crítico: No se pudo cargar el mapa base de la tierra.");
+            }); 
+            
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ 
                 map: defaultEarthTexture, 
-                shininess: 25 
+                shininess: 15 
             }));
             scene.add(earth);
 
-            // Nubes .jpg
+            // Capa de nubes
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTex = textureLoader.load('texturas/8k_earth_clouds.jpg'); 
+            const cloudsTex = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_clouds.jpg`, undefined, undefined, () => {
+                console.warn("Falta archivo de nubes opcional.");
+            }); 
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
                 alphaMap: cloudsTex, 
                 transparent: true, 
@@ -195,8 +200,18 @@
 
         function createSpaceBackground() {
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
-            const bgTex = textureLoader.load('texturas/8k_stars_milky_way.jpg'); 
-            scene.add(new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: bgTex, side: THREE.BackSide })));
+            textureLoader.load(`${TEXTURES_FOLDER_URL}8k_stars_milky_way.jpg`, 
+                (tex) => {
+                    const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide }));
+                    scene.add(bgMesh);
+                }, 
+                undefined, 
+                () => {
+                    // Si el fondo estelar da 404, se aplica un color azul oscuro/negro espacial de respaldo para no romper la app
+                    const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: 0x02040a, side: THREE.BackSide }));
+                    scene.add(bgMesh);
+                }
+            );
         }
 
         function setupTextCanvases() {
@@ -249,26 +264,23 @@
             const totalAssets = orgKeys.length * 2;
 
             orgKeys.forEach(key => {
-                // 1. Carga de logotipos desde la carpeta real 'logotipos'
+                // 1. Carga de logos
                 const img = new Image();
                 img.src = orgData[key].imagen;
                 img.onload = () => { checkAssetsLoaded(); };
-                img.onerror = () => { 
-                    console.warn(`No se pudo cargar la imagen: ${img.src}. Usando respaldo vacío.`);
-                    checkAssetsLoaded(); 
-                };
+                img.onerror = () => { checkAssetsLoaded(); };
                 loadedImages[key] = img;
 
-                // 2. Intento de carga de textura personalizada de la organización
+                // 2. Carga controlada de mapas de organizaciones
                 textureLoader.load(
-                    `texturas/${key}.png`,
+                    `${TEXTURES_FOLDER_URL}${key}.png`,
                     (tex) => {
                         loadedTextures[key] = tex;
                         checkAssetsLoaded();
                     },
                     undefined,
-                    (err) => {
-                        // Respaldo automático: si no existe el mapa de la organización, usa el mapa base
+                    () => {
+                        // Respaldo silencioso si la textura del país no existe en el servidor
                         loadedTextures[key] = defaultEarthTexture; 
                         checkAssetsLoaded();
                     }
@@ -302,7 +314,6 @@
             const data = orgData[key];
             if (!data) return;
 
-            // Actualizar la textura del planeta de forma segura
             if (earth) {
                 earth.material.map = loadedTextures[key] || defaultEarthTexture;
                 earth.material.needsUpdate = true;
@@ -420,7 +431,7 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Joystick Izquierdo: Rotación Manual de la Tierra
+            // Joystick Izquierdo: Mover la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) {
                 earth.rotation.y += sx * 0.03;
