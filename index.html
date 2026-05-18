@@ -43,7 +43,6 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        // ==================== DATOS ACTUALIZADOS ====================
         const orgData = {
             "ACNUR": { anio: 1950, imagen: "logos/ACNUR.jpg",
                 info: ["Misión: Proteger refugiados, desplazados y apátridas.","Brinda ayuda humanitaria: refugio, salud, agua y educación.","Opera en más de 130 países y ha asistido a más de 100 millones de personas."],
@@ -146,6 +145,7 @@
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
 
+        // ==================== FUNCIONES PRINCIPALES ====================
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -165,14 +165,12 @@
             directionalLight.position.set(5, 5, 6);
             scene.add(directionalLight);
 
-            // Tierra
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
             const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
             const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 });
             earth = new THREE.Mesh(geometry, earthMaterial);
             scene.add(earth);
 
-            // Nubes
             const cloudsGeometry = new THREE.SphereGeometry(1.215, 64, 64);
             const cloudsTexture = textureLoader.load('textures/8k_earth_clouds.jpg');
             const cloudsMaterial = new THREE.MeshPhongMaterial({ alphaMap: cloudsTexture, transparent: true, color: 0xffffff, depthWrite: false });
@@ -203,8 +201,7 @@
             const backgroundGeometry = new THREE.SphereGeometry(90, 32, 32);
             const backgroundTexture = loader.load('textures/8k_stars_milky_way.jpg');
             const backgroundMaterial = new THREE.MeshBasicMaterial({ map: backgroundTexture, side: THREE.BackSide });
-            const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
-            scene.add(backgroundMesh);
+            scene.add(new THREE.Mesh(backgroundGeometry, backgroundMaterial));
         }
 
         function setupTextCanvases() {
@@ -225,23 +222,19 @@
             uiGroup = new THREE.Group();
             const panelGeo = new THREE.PlaneGeometry(3.6, 3.6);
 
-            const leftMat = new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide });
-            leftPanelMesh = new THREE.Mesh(panelGeo, leftMat);
+            leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
             leftPanelMesh.position.set(-4.0, 0.2, -0.8);
             leftPanelMesh.rotation.y = 0.46;
             leftPanelMesh.userData = { type: "panel_izquierdo" };
             uiGroup.add(leftPanelMesh);
 
-            const rightMat = new THREE.MeshBasicMaterial({ map: rightTexture, transparent: true, side: THREE.DoubleSide });
-            rightPanelMesh = new THREE.Mesh(panelGeo, rightMat);
+            rightPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: rightTexture, transparent: true, side: THREE.DoubleSide }));
             rightPanelMesh.position.set(4.0, 0.2, -0.8);
             rightPanelMesh.rotation.y = -0.46;
             rightPanelMesh.userData = { type: "panel_derecho" };
             uiGroup.add(rightPanelMesh);
 
-            const selectorGeo = new THREE.PlaneGeometry(4.2, 0.9);
-            const selectorMat = new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide });
-            selectorPanelMesh = new THREE.Mesh(selectorGeo, selectorMat);
+            selectorPanelMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide }));
             selectorPanelMesh.position.set(0, -2.2, -0.2);
             selectorPanelMesh.rotation.x = -0.3;
             selectorPanelMesh.userData = { type: "selector_fondo" };
@@ -251,80 +244,70 @@
         }
 
         function preloadImagesAndRender() {
-            let loadCounter = 0;
-            const total = orgKeys.length;
+            let loaded = 0;
             orgKeys.forEach(key => {
                 const img = new Image();
                 img.src = orgData[key].imagen;
-                img.onload = () => {
-                    loadedImages[key] = img;
-                    loadCounter++;
-                    if (loadCounter === total) renderUIElements(orgKeys[currentSelectedIndex]);
+                img.onload = img.onerror = () => {
+                    if (img.onload) loadedImages[key] = img;
+                    loaded++;
+                    if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]);
                 };
-                img.onerror = () => { loadCounter++; if (loadCounter === total) renderUIElements(orgKeys[currentSelectedIndex]); };
             });
         }
 
-        function wrapText(context, text, x, y, maxWidth, lineHeight) {
-            let words = text.split(' ');
-            let line = '';
-            for (let n = 0; n < words.length; n++) {
-                let testLine = line + words[n] + ' ';
-                let metrics = context.measureText(testLine);
-                if (metrics.width > maxWidth && n > 0) {
-                    context.fillText(line, x, y);
-                    line = words[n] + ' ';
-                    y += lineHeight;
-                } else {
-                    line = testLine;
-                }
+        function wrapText(ctx, text, x, y, maxW, lineH) {
+            let words = text.split(' '), line = '';
+            for (let w of words) {
+                let test = line + w + ' ';
+                if (ctx.measureText(test).width > maxW && line.length > 0) {
+                    ctx.fillText(line, x, y);
+                    line = w + ' ';
+                    y += lineH;
+                } else line = test;
             }
-            context.fillText(line, x, y);
+            ctx.fillText(line, x, y);
         }
 
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
 
-            const totalInfoPaginas = data.info.length;
-            const totalPaisPaginas = Math.ceil(data.paises.length / paisesPorPagina);
+            const totalInfo = data.info.length;
+            const totalPaises = Math.ceil(data.paises.length / paisesPorPagina);
 
-            // Panel Izquierdo - Países
+            // Panel Izquierdo
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
-            leftCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; leftCtx.lineWidth = 26; leftCtx.strokeRect(0, 0, canvasW, canvasH);
+            leftCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; leftCtx.lineWidth = 26;
+            leftCtx.strokeRect(0, 0, canvasW, canvasH);
+
             leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 130px 'Segoe UI'";
             leftCtx.fillText("PAÍSES MIEMBROS", 100, 180);
 
-            const inicio = currentPaisPage * paisesPorPagina;
-            const paisesPagina = data.paises.slice(inicio, inicio + paisesPorPagina);
-
+            const start = currentPaisPage * paisesPorPagina;
             leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 95px 'Segoe UI'";
             let y = 420;
-            paisesPagina.forEach(p => {
+            data.paises.slice(start, start + paisesPorPagina).forEach(p => {
                 leftCtx.fillText(`• ${p}`, 120, y);
                 y += 135;
             });
 
-            leftCtx.fillStyle = "#00ffcc"; leftCtx.font = "bold 65px 'Segoe UI'";
-            leftCtx.fillText(`Pág ${currentPaisPage+1}/${totalPaisPaginas} ↑↓`, 120, 1880);
             leftTexture.needsUpdate = true;
 
-            // Panel Derecho - Información
+            // Panel Derecho
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 0, canvasW, canvasH);
-            rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26; rightCtx.strokeRect(0, 0, canvasW, canvasH);
+            rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26;
+            rightCtx.strokeRect(0, 0, canvasW, canvasH);
 
             if (loadedImages[key]) rightCtx.drawImage(loadedImages[key], 824, 80, 400, 400);
 
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 150px 'Segoe UI'";
             rightCtx.textAlign = "center";
             rightCtx.fillText(key.toUpperCase(), 1024, 560);
-
-            rightCtx.fillStyle = "#00ffcc"; rightCtx.font = "bold 70px 'Segoe UI'";
-            rightCtx.fillText(`Info ${currentInfoPage+1}/${totalInfoPaginas} ←→`, 1024, 650);
 
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 710); rightCtx.lineTo(1948, 710); rightCtx.stroke();
@@ -335,19 +318,20 @@
 
             rightTexture.needsUpdate = true;
 
-            // Selector Inferior
+            // Selector Inferior (sin texto verde)
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
-            selectorCtx.strokeStyle = "#007bff"; selectorCtx.lineWidth = 12; selectorCtx.strokeRect(0, 0, 1024, 240);
-            selectorCtx.fillStyle = "#00ffcc"; selectorCtx.font = "bold 38px 'Segoe UI'";
+            selectorCtx.strokeStyle = "#007bff"; selectorCtx.lineWidth = 12;
+            selectorCtx.strokeRect(0, 0, 1024, 240);
+
+            selectorCtx.fillStyle = "#ffffff"; selectorCtx.font = "bold 110px 'Segoe UI'";
             selectorCtx.textAlign = "center";
-            selectorCtx.fillText("L1/L2 = Org   ←→ = Info   ↑↓ = Países", 512, 75);
-            selectorCtx.fillStyle = "#ffffff"; selectorCtx.font = "bold 100px 'Segoe UI'";
-            selectorCtx.fillText(key, 512, 180);
+            selectorCtx.fillText(key, 512, 170);
             selectorTexture.needsUpdate = true;
         }
 
+        // Controles (mantienen su funcionalidad)
         function scrollPaises(dir) {
             const total = Math.ceil(orgData[orgKeys[currentSelectedIndex]].paises.length / paisesPorPagina);
             currentPaisPage = (currentPaisPage + dir + total) % total;
@@ -366,40 +350,32 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            const stickX = gp.axes[0];
-            const stickY = gp.axes[1];
-            if (Math.abs(stickX) > 0.15) { earth.rotation.y += stickX * 0.03; clouds.rotation.y += stickX * 0.03; }
-            if (Math.abs(stickY) > 0.15) { earth.rotation.x += stickY * 0.03; clouds.rotation.x += stickY * 0.03; }
+            const sx = gp.axes[0], sy = gp.axes[1];
+            if (Math.abs(sx) > 0.15) { earth.rotation.y += sx * 0.03; clouds.rotation.y += sx * 0.03; }
+            if (Math.abs(sy) > 0.15) { earth.rotation.x += sy * 0.03; clouds.rotation.x += sy * 0.03; }
 
-            // ↑ ↓ Países
             if (gp.buttons[12]?.pressed && !dpadPressedState.up) { dpadPressedState.up = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) dpadPressedState.up = false;
 
             if (gp.buttons[13]?.pressed && !dpadPressedState.down) { dpadPressedState.down = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) dpadPressedState.down = false;
 
-            // ← → Información
             if (gp.buttons[14]?.pressed && !dpadPressedState.left) {
                 dpadPressedState.left = true;
-                const total = orgData[orgKeys[currentSelectedIndex]].info.length;
-                currentInfoPage = (currentInfoPage - 1 + total) % total;
+                const t = orgData[orgKeys[currentSelectedIndex]].info.length;
+                currentInfoPage = (currentInfoPage - 1 + t) % t;
                 renderUIElements(orgKeys[currentSelectedIndex]);
             } else if (!gp.buttons[14]?.pressed) dpadPressedState.left = false;
 
             if (gp.buttons[15]?.pressed && !dpadPressedState.right) {
                 dpadPressedState.right = true;
-                const total = orgData[orgKeys[currentSelectedIndex]].info.length;
-                currentInfoPage = (currentInfoPage + 1) % total;
+                const t = orgData[orgKeys[currentSelectedIndex]].info.length;
+                currentInfoPage = (currentInfoPage + 1) % t;
                 renderUIElements(orgKeys[currentSelectedIndex]);
             } else if (!gp.buttons[15]?.pressed) dpadPressedState.right = false;
 
-            // L1 / L2 Organizaciones
             if (gp.buttons[4]?.pressed) navegarOrganizaciones(-1);
             if (gp.buttons[5]?.pressed) navegarOrganizaciones(1);
-        }
-
-        function executeWorldGazeZoom() { /* mantengo lógica original */ 
-            // (puedes dejarla como estaba)
         }
 
         function updateCameraInterpolation() {
@@ -418,7 +394,7 @@
             updateCameraInterpolation();
 
             if (isVR) {
-                vrControls.update();
+                if (vrControls) vrControls.update();
                 effect.render(scene, camera);
             } else {
                 if (mouseControls && currentZoomObject === null) mouseControls.update();
@@ -433,7 +409,7 @@
             effect.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Inicialización
+        // ==================== INICIO ====================
         init();
 
         const button = document.getElementById('permission-btn');
