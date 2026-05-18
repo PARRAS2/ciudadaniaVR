@@ -42,13 +42,14 @@
         const paisesPorPagina = 12;
 
         let scene, camera, renderer, effect, vrControls, mouseControls;
-        let earth, clouds, uiGroup, leftPanelMesh, rightPanelMesh, selectorPanelMesh;
+        let earth, clouds, uiGroup;
+        let leftPanelMesh, rightPanelMesh, selectorPanelMesh;
         let leftCanvas, leftCtx, rightCanvas, rightCtx, selectorCanvas, selectorCtx;
         let leftTexture, rightTexture, selectorTexture;
         let isVR = false;
         let activeGamepad = null;
         let dpadState = { up:false, down:false, left:false, right:false };
-        let buttonXPressed = false;
+        let xButtonPressed = false;
 
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
@@ -71,7 +72,7 @@
             }
         }
 
-        // ==================== RENDER ====================
+        // ==================== RENDER UI ====================
         async function renderUIElements() {
             const data = await loadOrgData(currentOrgKey);
             if (!data) return;
@@ -137,25 +138,25 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== CONTROLES CORREGIDOS ====================
+        // ==================== CONTROLES ====================
         function handleGamepadInput() {
             if (activeGamepad === null) return;
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Rotación Tierra
+            // Joystick izquierdo - Rotar Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) { earth.rotation.y += sx * 0.03; clouds.rotation.y += sx * 0.03; }
             if (Math.abs(sy) > 0.15) { earth.rotation.x += sy * 0.03; clouds.rotation.x += sy * 0.03; }
 
-            // ↑ ↓ = Países
+            // ↑ ↓ = Cambiar páginas de países
             if (gp.buttons[12]?.pressed && !dpadState.up) { dpadState.up = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) dpadState.up = false;
 
             if (gp.buttons[13]?.pressed && !dpadState.down) { dpadState.down = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) dpadState.down = false;
 
-            // ← → = Información
+            // ← → = Cambiar páginas de información
             if (gp.buttons[14]?.pressed && !dpadState.left) {
                 dpadState.left = true;
                 currentInfoPage = (currentInfoPage - 1 + 3) % 3;
@@ -175,11 +176,11 @@
             if (gp.buttons[1]?.pressed) navegarOrganizaciones(1);
 
             // X = Zoom / Gaze
-            if (gp.buttons[0]?.pressed && !buttonXPressed) {
-                buttonXPressed = true;
+            if (gp.buttons[0]?.pressed && !xButtonPressed) {
+                xButtonPressed = true;
                 executeWorldGazeZoom();
             } else if (!gp.buttons[0]?.pressed) {
-                buttonXPressed = false;
+                xButtonPressed = false;
             }
         }
 
@@ -200,35 +201,42 @@
         }
 
         function executeWorldGazeZoom() {
-            // Aquí puedes restaurar tu lógica anterior de zoom si la tienes
-            console.log("Zoom/Gaze activado con botón X");
-            // (Agrega aquí tu código anterior de zoom si lo deseas)
+            console.log("🔎 Zoom activado con botón X");
+            // Aquí puedes agregar tu lógica anterior de zoom si la quieres
         }
 
-        // ==================== THREE.JS (resumido pero funcional) ====================
+        // ==================== SETUP THREE.JS ====================
         function init() {
-            // ... (código Three.js completo como antes)
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0,0,5.6);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 5.6);
             scene.add(camera);
 
-            renderer = new THREE.WebGLRenderer({antialias:true});
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            // Luces, Tierra, Nubes, Fondo (igual que antes)
-            const ambient = new THREE.AmbientLight(0xffffff, 0.7); scene.add(ambient);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9); dirLight.position.set(5,5,6); scene.add(dirLight);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(5,5,6);
+            scene.add(dirLight);
 
-            earth = new THREE.Mesh(new THREE.SphereGeometry(1.2,64,64), new THREE.MeshPhongMaterial({map: textureLoader.load('textures/8k_earth_daymap.jpg')}));
+            earth = new THREE.Mesh(new THREE.SphereGeometry(1.2, 64, 64),
+                new THREE.MeshPhongMaterial({ map: textureLoader.load('textures/8k_earth_daymap.jpg') }));
             scene.add(earth);
 
-            clouds = new THREE.Mesh(new THREE.SphereGeometry(1.215,64,64), new THREE.MeshPhongMaterial({alphaMap: textureLoader.load('textures/8k_earth_clouds.jpg'), transparent:true, color:0xffffff}));
+            clouds = new THREE.Mesh(new THREE.SphereGeometry(1.215, 64, 64),
+                new THREE.MeshPhongMaterial({ alphaMap: textureLoader.load('textures/8k_earth_clouds.jpg'), transparent: true, color: 0xffffff }));
             scene.add(clouds);
+
+            // Fondo
+            const bg = new THREE.Mesh(new THREE.SphereGeometry(90, 32, 32),
+                new THREE.MeshBasicMaterial({ map: textureLoader.load('textures/8k_stars_milky_way.jpg'), side: THREE.BackSide }));
+            scene.add(bg);
 
             setupTextCanvases();
             createSpatialUI();
@@ -241,7 +249,50 @@
             animate();
         }
 
-        // (Mantengo las funciones setupTextCanvases, createSpatialUI, preloadLogos, animate, etc. como en versiones anteriores)
+        function setupTextCanvases() {
+            leftCanvas = document.createElement('canvas'); leftCanvas.width = canvasW; leftCanvas.height = canvasH;
+            leftCtx = leftCanvas.getContext('2d');
+            leftTexture = new THREE.CanvasTexture(leftCanvas);
+
+            rightCanvas = document.createElement('canvas'); rightCanvas.width = canvasW; rightCanvas.height = canvasH;
+            rightCtx = rightCanvas.getContext('2d');
+            rightTexture = new THREE.CanvasTexture(rightCanvas);
+
+            selectorCanvas = document.createElement('canvas'); selectorCanvas.width = 1024; selectorCanvas.height = 240;
+            selectorCtx = selectorCanvas.getContext('2d');
+            selectorTexture = new THREE.CanvasTexture(selectorCanvas);
+        }
+
+        function createSpatialUI() {
+            uiGroup = new THREE.Group();
+            const panelGeo = new THREE.PlaneGeometry(3.6, 3.6);
+
+            leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
+            leftPanelMesh.position.set(-4, 0.2, -0.8);
+            leftPanelMesh.rotation.y = 0.46;
+            uiGroup.add(leftPanelMesh);
+
+            rightPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: rightTexture, transparent: true, side: THREE.DoubleSide }));
+            rightPanelMesh.position.set(4, 0.2, -0.8);
+            rightPanelMesh.rotation.y = -0.46;
+            uiGroup.add(rightPanelMesh);
+
+            selectorPanelMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide }));
+            selectorPanelMesh.position.set(0, -2.2, -0.2);
+            selectorPanelMesh.rotation.x = -0.3;
+            uiGroup.add(selectorPanelMesh);
+
+            scene.add(uiGroup);
+        }
+
+        function preloadLogos() {
+            const keys = Object.keys(orgDataCache).length ? Object.keys(orgDataCache) : ["ACNUR","Banco Mundial","Cruz Roja","FAO","FMI","INTERPOL","OIEA","OIT","OMC","OMI","OMS","ONU","OPAQ","PMA","PNUMA","UNESCO","UNICEF","UIT"];
+            keys.forEach(key => {
+                const img = new Image();
+                img.src = `logos/${key}.jpg`;
+                img.onload = () => loadedImages[key] = img;
+            });
+        }
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -257,7 +308,7 @@
             handleGamepadInput();
 
             if (isVR) {
-                vrControls.update();
+                if (vrControls) vrControls.update();
                 effect.render(scene, camera);
             } else {
                 if (mouseControls) mouseControls.update();
@@ -277,7 +328,7 @@
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
 
             // Audio
-            try { await audio.play(); } catch(e) { console.log("Audio autoplay bloqueado"); }
+            try { await audio.play(); } catch(e) {}
 
             document.getElementById('reticle-left').style.display = 'block';
             document.getElementById('reticle-right').style.display = 'block';
