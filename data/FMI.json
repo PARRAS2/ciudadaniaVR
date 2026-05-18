@@ -1,12 +1,28 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "FMI",
+  "anio": 1944,
   "imagen": "logos/FMI.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "El Fondo Monetario Internacional (FMI) fue creado en julio de 1944 en la Conferencia de Bretton Woods, junto con el Banco Mundial. Comenzó a operar formalmente en 1945.",
+    "Su principal objetivo es garantizar la estabilidad del sistema financiero internacional, promover la cooperación monetaria, facilitar el comercio internacional y ayudar a los países con dificultades en su balanza de pagos mediante préstamos y asistencia técnica.",
+    "Monitorea la economía global, proporciona recomendaciones de política económica y actúa como prestamista de último recurso durante crisis financieras. Cuenta con 190 países miembros."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Antigua y Barbuda", "Arabia Saudita", "Argentina", "Armenia", "Australia", "Austria",
+    "Azerbaiyán", "Bahamas", "Bangladesh", "Barbados", "Bélgica", "Belice", "Benín", "Bolivia", "Bosnia y Herzegovina", "Botswana",
+    "Brasil", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Camboya", "Camerún", "Canadá", "Chad", "Chile",
+    "China", "Colombia", "Comoras", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador",
+    "Egipto", "El Salvador", "Emiratos Árabes Unidos", "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia", "Francia",
+    "Gabón", "Gambia", "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Guinea-Bisáu", "Guyana", "Haití",
+    "Honduras", "Hungría", "India", "Indonesia", "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Jamaica",
+    "Japón", "Jordania", "Kazajistán", "Kenya", "Kirguistán", "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano",
+    "Liberia", "Libia", "Liechtenstein", "Lituania", "Luxemburgo", "Macedonia del Norte", "Madagascar", "Malasia", "Malawi", "Malí",
+    "Malta", "Marruecos", "Mauricio", "Mauritania", "México", "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar",
+    "Namibia", "Nepal", "Nicaragua", "Níger", "Nigeria", "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán",
+    "Panamá", "Papúa Nueva Guinea", "Paraguay", "Perú", "Polonia", "Portugal", "Qatar", "Reino Unido", "República Centroafricana", "República Checa",
+    "República Democrática del Congo", "República Dominicana", "Rumania", "Rusia", "Ruanda", "San Marino", "Senegal", "Serbia", "Sierra Leona", "Singapur",
+    "Siria", "Somalia", "Sri Lanka", "Sudáfrica", "Sudán", "Sudán del Sur", "Suecia", "Suiza", "Surinam", "Tailandia",
+    "Tanzania", "Tayikistán", "Timor Oriental", "Togo", "Trinidad y Tobago", "Túnez", "Turquía", "Turkmenistán", "Ucrania", "Uganda",
+    "Uruguay", "Uzbekistán", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
