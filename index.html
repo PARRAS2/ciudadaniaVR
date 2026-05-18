@@ -57,7 +57,6 @@
             "ONU", "OPAQ", "PMA", "PNUMA", "UIT", "UNESCO", "UNICEF"
         ];
 
-        // Diccionario para mostrar el significado de las siglas sobre el planeta
         const diccionarioSiglas = {
             "ACNUR": "Alto Comisionado de las Naciones Unidas para los Refugiados",
             "Banco Mundial": "Grupo del Banco Mundial (Financiamiento Global)",
@@ -101,7 +100,8 @@
 
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
-        const loadedImages = {};
+        const loadedImages = {};     // Almacena los logos como objetos Image de HTML para el Canvas
+        const earthTextures = {};    // Almacena las texturas 3D de Three.js para la esfera de la Tierra
 
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
@@ -116,18 +116,19 @@
                     
                     orgData[key] = {
                         anio: json.anio || json.año || 2026,
-                        imagen: json.imagen || `logos/${key}.jpg`,
+                        // Cambiado a .png según tu estructura de archivos
+                        imagen: json.imagen || `texturas/${key}.png`,
                         info: Array.isArray(json.info) ? json.info : [json.info],
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
                     console.error(`Error procesando los datos de: ${key}`, error);
-                    orgData[key] = { anio: 2026, imagen: `logos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
+                    orgData[key] = { anio: 2026, imagen: `texturas/${key}.png`, info: ["Error al cargar información."], paises: [] };
                 }
             });
 
             await Promise.all(fetchPromises);
-            preloadImagesAndRender();
+            preloadImagesAndTextures();
         }
 
         // ==================== INICIALIZACIÓN THREE.JS ====================
@@ -149,14 +150,14 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra - Cambiado a 8k_earth_daymap.png
+            // Planeta Tierra Inicializado con textura por defecto (8k_earth_daymap.png)
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            const earthTexture = textureLoader.load('textures/8k_earth_daymap.png');
-            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 }));
+            const defaultEarthTexture = textureLoader.load('texturas/8k_earth_daymap.png');
+            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: defaultEarthTexture, shininess: 15 }));
             scene.add(earth);
 
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTex = textureLoader.load('textures/8k_earth_clouds.jpg');
+            const cloudsTex = textureLoader.load('texturas/8k_earth_clouds.jpg');
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
                 alphaMap: cloudsTex, transparent: true, color: 0xffffff, depthWrite: false 
             }));
@@ -182,7 +183,7 @@
 
         function createSpaceBackground() {
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
-            const bgTex = textureLoader.load('textures/8k_stars_milky_way.jpg');
+            const bgTex = textureLoader.load('texturas/8k_stars_milky_way.jpg');
             scene.add(new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: bgTex, side: THREE.BackSide })));
         }
 
@@ -199,7 +200,6 @@
             selectorCtx = selectorCanvas.getContext('2d');
             selectorTexture = new THREE.CanvasTexture(selectorCanvas);
 
-            // Canvas nuevo para las siglas flotantes sobre el planeta
             siglasCanvas = document.createElement('canvas'); siglasCanvas.width = 1500; siglasCanvas.height = 300;
             siglasCtx = siglasCanvas.getContext('2d');
             siglasTexture = new THREE.CanvasTexture(siglasCanvas);
@@ -207,8 +207,6 @@
 
         function createSpatialUI() {
             uiGroup = new THREE.Group();
-            
-            // Paneles laterales devueltos a un tamaño estilizado equilibrado
             const panelGeo = new THREE.PlaneGeometry(3.6, 4.2);
 
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
@@ -226,22 +224,49 @@
             selectorPanelMesh.rotation.x = -0.3;
             uiGroup.add(selectorPanelMesh);
 
-            // === NUEVO PANEL 3D: Texto flotante sobre el planeta ===
             siglasMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.76), new THREE.MeshBasicMaterial({ map: siglasTexture, transparent: true, side: THREE.DoubleSide }));
-            siglasMesh.position.set(0, 1.8, -0.4); // Justo encima de la Tierra
+            siglasMesh.position.set(0, 1.8, -0.4); 
             uiGroup.add(siglasMesh);
 
             scene.add(uiGroup);
         }
 
-        function preloadImagesAndRender() {
+        // ==================== PRE-CARGA DE IMÁGENES Y TEXTURAS 3D ====================
+        function preloadImagesAndTextures() {
             let loaded = 0;
+            const total = orgKeys.length;
+
             orgKeys.forEach(key => {
+                // 1. Pre-cargar logos en formato HTML Image para el panel de información de la derecha
                 const img = new Image();
                 img.src = orgData[key].imagen;
-                img.onload = () => { loadedImages[key] = img; loaded++; if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]); };
-                img.onerror = () => { loaded++; if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]); };
+                img.onload = () => { 
+                    loadedImages[key] = img; 
+                    checkLoadProgress(); 
+                };
+                img.onerror = () => { 
+                    checkLoadProgress(); 
+                };
+
+                // 2. MODIFICACIÓN: Pre-cargar las imágenes como texturas nativas de Three.js para mapear en la Tierra
+                textureLoader.load(
+                    `texturas/${key}.png`,
+                    (texture) => {
+                        earthTextures[key] = texture;
+                    },
+                    undefined,
+                    (err) => {
+                        console.warn(`No se encontró textura de Tierra personalizada para ${key}, se usará la de por defecto.`);
+                    }
+                );
             });
+
+            function checkLoadProgress() {
+                loaded++;
+                if (loaded === total) {
+                    renderUIElements(orgKeys[currentSelectedIndex]);
+                }
+            }
         }
 
         function wrapText(ctx, text, x, y, maxW, lineH) {
@@ -258,14 +283,25 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERING CANVASES (UI ACTUALIZADA) ====================
+        // ==================== RENDERING CANVASES Y ACTUALIZACIÓN DE TEXTURA ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
 
+            // === MODIFICACIÓN: Cambiar la textura plasmada en la esfera de la Tierra ===
+            if (earth && earth.material) {
+                if (earthTextures[key]) {
+                    // Si existe el archivo de la organización en la carpeta texturas, se aplica
+                    earth.material.map = earthTextures[key];
+                } else {
+                    // Si falta alguno, vuelve a la textura global por defecto para que no quede negro
+                    earth.material.map = textureLoader.load('texturas/8k_earth_daymap.png');
+                }
+                earth.material.needsUpdate = true;
+            }
+
             // --- INTERFAZ SOBRE EL PLANETA: SIGNIFICADO DE LAS SIGLAS ---
             siglasCtx.clearRect(0, 0, 1500, 300);
-            // Fondo semi-transparente curvo/estético para el letrero superior
             siglasCtx.fillStyle = "rgba(10, 16, 36, 0.85)";
             siglasCtx.beginPath();
             siglasCtx.roundRect(0, 0, 1500, 300, 40);
@@ -273,7 +309,6 @@
             siglasCtx.strokeStyle = "rgba(0, 162, 255, 0.8)"; siglasCtx.lineWidth = 8;
             siglasCtx.stroke();
             
-            // Texto del significado centrado
             siglasCtx.fillStyle = "#ffffff"; siglasCtx.font = "bold 58px 'Segoe UI'";
             siglasCtx.textAlign = "center";
             const significado = diccionarioSiglas[key] || key;
@@ -289,7 +324,7 @@
             
             leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 140px 'Segoe UI'";
             leftCtx.textAlign = "left";
-            leftCtx.fillText("PAÍSES MIEMBLES", 100, 200);
+            leftCtx.fillText("PAÍSES MIEMBROS", 100, 200);
 
             const startPais = currentPaisPage * paisesPorPagina;
             leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 110px 'Segoe UI'"; 
@@ -304,16 +339,13 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO: INFORMACIÓN (FUENTE REDUCIDA Y OPTIMIZADA) ---
+            // --- PANEL DERECHO: INFORMACIÓN ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
-            
-            // Fondo de la tarjeta desplazado hacia abajo para dar espacio a la pestaña del logo
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26;
             rightCtx.strokeRect(0, 300, canvasW, canvasH - 300);
 
-            // LOGO: Tarjeta sobresaliente superior aumentada
             const logoSize = 500;
             const logoX = (canvasW - logoSize) / 2;
             const logoY = 50; 
@@ -327,7 +359,6 @@
                 rightCtx.drawImage(loadedImages[key], logoX, logoY, logoSize, logoSize);
             }
 
-            // Título de la Organización
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 155px 'Segoe UI'";
             rightCtx.textAlign = "center";
             rightCtx.fillText(key.toUpperCase(), 1024, 690);
@@ -335,13 +366,11 @@
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 760); rightCtx.lineTo(1948, 760); rightCtx.stroke();
 
-            // === AJUSTE SOLICITADO: Texto de información reducido para legibilidad óptima ===
             rightCtx.fillStyle = "#ffffff"; 
-            rightCtx.font = "80px 'Segoe UI'"; // Reducido de 115px a 80px para dar espacio y evitar desbordamientos
+            rightCtx.font = "80px 'Segoe UI'"; 
             rightCtx.textAlign = "left";
             
             const textoPaginaActual = data.info[currentInfoPage] || "";
-            // Interlineado ajustado proporcionalmente a 110px
             wrapText(rightCtx, textoPaginaActual, 110, 890, 1820, 110); 
 
             const totalInfoPages = data.info.length || 1;
@@ -387,7 +416,6 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Joystick Izquierdo: Rotación de la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) {
                 earth.rotation.y += sx * 0.03;
@@ -398,7 +426,6 @@
                 clouds.rotation.x += sy * 0.03;
             }
 
-            // Zoom Dinámico con Joystick Derecho (Hacia donde apunta el visor)
             const zoomAxis = gp.axes[3]; 
             if (Math.abs(zoomAxis) > 0.15) {
                 const direction = new THREE.Vector3();
@@ -413,21 +440,18 @@
                 }
             }
 
-            // D-Pad Arriba/Abajo -> Páginas de PAÍSES
             if (gp.buttons[12]?.pressed && !buttonPressedState.dpadUp) { buttonPressedState.dpadUp = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) buttonPressedState.dpadUp = false;
 
             if (gp.buttons[13]?.pressed && !buttonPressedState.dpadDown) { buttonPressedState.dpadDown = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) buttonPressedState.dpadDown = false;
 
-            // D-Pad Izquierda/Derecha -> Páginas de INFORMACIÓN
             if (gp.buttons[14]?.pressed && !buttonPressedState.dpadLeft) { buttonPressedState.dpadLeft = true; scrollInfo(-1); }
             else if (!gp.buttons[14]?.pressed) buttonPressedState.dpadLeft = false;
 
             if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) { buttonPressedState.dpadRight = true; scrollInfo(1); }
             else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
 
-            // Cuadrado / Círculo -> Cambia de Organización
             if (gp.buttons[2]?.pressed && !buttonPressedState.square) { buttonPressedState.square = true; navegarOrganizaciones(-1); }
             else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
 
