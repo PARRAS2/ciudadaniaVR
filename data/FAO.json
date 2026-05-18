@@ -1,7 +1,7 @@
 {
   "nombre": "FAO",
   "anio": 1945,
-  "imagen": "../logos/FAO.jpg",
+  "imagen": "logos/FAO.jpg",
   "info": [
     "La FAO (Organización de las Naciones Unidas para la Alimentación y la Agricultura) fue fundada el 16 de octubre de 1945 en Quebec, Canadá. Es una de las agencias especializadas más antiguas del sistema de Naciones Unidas.",
     "Su misión es lograr la seguridad alimentaria para todos, garantizar que las personas tengan acceso regular a alimentos suficientes de buena calidad para llevar una vida activa y saludable, y promover el desarrollo de la agricultura, la pesca y la silvicultura de forma sostenible.",
