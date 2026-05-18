@@ -13,15 +13,17 @@
         }
         #canvas-container { position:absolute; top:0; left:0; width:100vw; height:100vh; z-index:1; }
         .v-reticle {
-            position:absolute; top:50%; width:8px; height:8px; background:rgba(0,255,200,0.9);
-            border-radius:50%; transform:translate(-50%,-50%); z-index:20; display:none;
-            pointer-events:none; box-shadow:0 0 8px #00ffcc;
+            position:absolute; top:50%; width:10px; height:10px; background:rgba(0,255,200,0.95);
+            border: 2px solid rgba(255,255,255,0.6); border-radius:50%; 
+            transform:translate(-50%,-50%); z-index:20; display:none;
+            pointer-events:none; box-shadow:0 0 12px #00ffcc;
         }
         #reticle-left { left:25%; }
         #reticle-right { left:75%; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r134/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r134/examples/js/controls/DeviceOrientationControls.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r134/examples/js/effects/StereoEffect.js"></script>
 </head>
 <body>
@@ -37,7 +39,7 @@
         let currentInfoPage = 0;
         const paisesPorPagina = 12;
 
-        let scene, camera, renderer, effect, controls;
+        let scene, camera, renderer, effect, orbitControls, vrControls, raycaster;
         let earth, clouds, uiGroup;
         let leftPanelMesh, rightPanelMesh, selectorPanelMesh;
         let leftCanvas, leftCtx, rightCanvas, rightCtx, selectorCanvas, selectorCtx;
@@ -50,7 +52,7 @@
         let circlePressed = false;
         let xPressed = false;
 
-        const canvasW = 2048, canvasH = 1536; // Reducido para mejor rendimiento
+        const canvasW = 2048, canvasH = 1536;
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
         const orgDataCache = {};
@@ -60,13 +62,21 @@
             if (orgDataCache[key]) return orgDataCache[key];
             try {
                 const res = await fetch(`data/${key}.json`);
-                if (!res.ok) throw new Error("Archivo no encontrado");
+                if (!res.ok) throw new Error("No encontrado");
                 const data = await res.json();
                 orgDataCache[key] = data;
                 return data;
             } catch (e) {
                 console.error(`Error cargando ${key}.json`, e);
-                return { paises: ["Datos no disponibles"], info: ["Información no disponible"] };
+                return { paises: ["Datos no disponibles"], info: ["Sin información"] };
+            }
+        }
+
+        // Precargar varias organizaciones
+        async function preloadOrganizations() {
+            const keys = ["ONU","OMS","UNESCO","UNICEF","FAO","OIT","FMI","Banco Mundial"];
+            for (let key of keys) {
+                await loadOrgData(key);
             }
         }
 
@@ -75,7 +85,7 @@
             const data = await loadOrgData(currentOrgKey);
             if (!data) return;
 
-            // Panel Izquierdo - Países
+            // Panel Izquierdo
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6,10,22,0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -88,15 +98,13 @@
             leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 92px 'Segoe UI'";
             const start = currentPaisPage * paisesPorPagina;
             let y = 420;
-            const paisesMostrar = data.paises.slice(start, start + paisesPorPagina);
-            paisesMostrar.forEach(p => {
+            data.paises.slice(start, start + paisesPorPagina).forEach(p => {
                 leftCtx.fillText(`• ${p}`, 140, y);
                 y += 130;
             });
-
             leftTexture.needsUpdate = true;
 
-            // Panel Derecho - Información
+            // Panel Derecho
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6,10,22,0.96)";
             rightCtx.fillRect(0, 0, canvasW, canvasH);
@@ -114,10 +122,9 @@
             rightCtx.fillStyle = "#ffffff"; rightCtx.font = "92px 'Segoe UI'";
             rightCtx.textAlign = "left";
             wrapText(rightCtx, data.info[currentInfoPage] || "Sin información", 120, 780, 1800, 130);
-
             rightTexture.needsUpdate = true;
 
-            // Selector inferior
+            // Selector
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10,18,36,0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -127,7 +134,6 @@
             selectorCtx.fillStyle = "#ffffff"; selectorCtx.font = "bold 110px 'Segoe UI'";
             selectorCtx.textAlign = "center";
             selectorCtx.fillText(currentOrgKey, 512, 165);
-
             selectorTexture.needsUpdate = true;
         }
 
@@ -140,11 +146,51 @@
                     ctx.fillText(line, x, y);
                     line = word + ' ';
                     y += lineH;
-                } else {
-                    line = testLine;
-                }
+                } else line = testLine;
             }
             ctx.fillText(line, x, y);
+        }
+
+        // ==================== ZOOM CON RAYCASTING ====================
+        function zoomToPoint() {
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const objectsToTest = [earth, leftPanelMesh, rightPanelMesh];
+            const intersects = raycaster.intersectObjects(objectsToTest, false);
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                if (intersect.object === earth) {
+                    const point = intersect.point;
+                    const targetPos = point.clone().normalize().multiplyScalar(3.3);
+                    animateCameraTo(targetPos, point);
+                } else if (intersect.object === leftPanelMesh) {
+                    animateCameraTo(new THREE.Vector3(-5.8, 0.3, 0), new THREE.Vector3(-4.2, 0.2, -1));
+                } else if (intersect.object === rightPanelMesh) {
+                    animateCameraTo(new THREE.Vector3(5.8, 0.3, 0), new THREE.Vector3(4.2, 0.2, -1));
+                }
+            } else {
+                animateCameraTo(new THREE.Vector3(0, 0, 6.8), new THREE.Vector3(0, 0, 0));
+            }
+        }
+
+        function animateCameraTo(targetPos, lookAtPoint) {
+            const startPos = camera.position.clone();
+            const startLook = orbitControls.target.clone();
+            let t = 0;
+            const duration = 1100;
+            const startTime = Date.now();
+
+            function anim() {
+                const elapsed = Date.now() - startTime;
+                t = Math.min(elapsed / duration, 1);
+                const ease = 1 - Math.pow(1 - t, 3);
+
+                camera.position.lerpVectors(startPos, targetPos, ease);
+                orbitControls.target.lerpVectors(startLook, lookAtPoint, ease);
+
+                if (t < 1) requestAnimationFrame(anim);
+            }
+            anim();
         }
 
         // ==================== CONTROLES PS4 ====================
@@ -153,62 +199,48 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Joystick izquierdo - Rotar Tierra
-            const sx = gp.axes[0];
-            const sy = gp.axes[1];
+            // Joystick - Rotar Tierra
+            const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) earth.rotation.y += sx * 0.04;
             if (Math.abs(sy) > 0.15) earth.rotation.x += sy * 0.04;
 
-            // D-PAD ↑ ↓ → Países
-            if (gp.buttons[12].pressed && !dpadState.up) {
-                dpadState.up = true;
-                scrollPaises(-1);
-            } else if (!gp.buttons[12].pressed) dpadState.up = false;
+            // D-PAD Países
+            if (gp.buttons[12].pressed && !dpadState.up) { dpadState.up = true; scrollPaises(-1); }
+            else if (!gp.buttons[12].pressed) dpadState.up = false;
 
-            if (gp.buttons[13].pressed && !dpadState.down) {
-                dpadState.down = true;
-                scrollPaises(1);
-            } else if (!gp.buttons[13].pressed) dpadState.down = false;
+            if (gp.buttons[13].pressed && !dpadState.down) { dpadState.down = true; scrollPaises(1); }
+            else if (!gp.buttons[13].pressed) dpadState.down = false;
 
-            // D-PAD ← → → Información
+            // D-PAD Información
             if (gp.buttons[14].pressed && !dpadState.left) {
-                dpadState.left = true;
-                currentInfoPage = (currentInfoPage - 1 + 3) % 3;
-                renderUIElements();
+                dpadState.left = true; currentInfoPage = (currentInfoPage - 1 + 3) % 3; renderUIElements();
             } else if (!gp.buttons[14].pressed) dpadState.left = false;
 
             if (gp.buttons[15].pressed && !dpadState.right) {
-                dpadState.right = true;
-                currentInfoPage = (currentInfoPage + 1) % 3;
-                renderUIElements();
+                dpadState.right = true; currentInfoPage = (currentInfoPage + 1) % 3; renderUIElements();
             } else if (!gp.buttons[15].pressed) dpadState.right = false;
 
-            // □ Anterior organización
+            // □ Anterior
             if (gp.buttons[2].pressed && !squarePressed) {
-                squarePressed = true;
-                navegarOrganizaciones(-1);
+                squarePressed = true; navegarOrganizaciones(-1);
             } else if (!gp.buttons[2].pressed) squarePressed = false;
 
-            // ○ Siguiente organización
+            // ○ Siguiente
             if (gp.buttons[1].pressed && !circlePressed) {
-                circlePressed = true;
-                navegarOrganizaciones(1);
+                circlePressed = true; navegarOrganizaciones(1);
             } else if (!gp.buttons[1].pressed) circlePressed = false;
 
-            // X → Zoom
+            // X Zoom
             if (gp.buttons[0].pressed && !xPressed) {
-                xPressed = true;
-                toggleZoom();
-            } else if (!gp.buttons[0].pressed) {
-                xPressed = false;
-            }
+                xPressed = true; zoomToPoint();
+            } else if (!gp.buttons[0].pressed) xPressed = false;
         }
 
         function scrollPaises(dir) {
             const data = orgDataCache[currentOrgKey];
             if (!data) return;
-            const maxPages = Math.ceil(data.paises.length / paisesPorPagina);
-            currentPaisPage = (currentPaisPage + dir + maxPages) % maxPages;
+            const max = Math.ceil(data.paises.length / paisesPorPagina);
+            currentPaisPage = (currentPaisPage + dir + max) % max;
             renderUIElements();
         }
 
@@ -224,18 +256,11 @@
             currentPaisPage = 0;
             currentInfoPage = 0;
 
+            console.log(`→ Cambiando a: ${currentOrgKey}`);
             await renderUIElements();
         }
 
-        function toggleZoom() {
-            if (camera.position.z > 4) {
-                camera.position.z = 3.2;   // Zoom in
-            } else {
-                camera.position.z = 6.5;   // Zoom out
-            }
-        }
-
-        // ==================== THREE.JS SETUP ====================
+        // ==================== THREE.JS ====================
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -248,60 +273,50 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            // Luces
+            raycaster = new THREE.Raycaster();
+
+            // Controles
+            orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.1;
+            orbitControls.enablePan = false;
+
+            vrControls = new THREE.DeviceOrientationControls(camera);
+
+            // Luces y objetos 3D (igual que antes)
             scene.add(new THREE.AmbientLight(0xffffff, 0.7));
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Tierra
-            earth = new THREE.Mesh(
-                new THREE.SphereGeometry(1.2, 64, 64),
-                new THREE.MeshPhongMaterial({ map: textureLoader.load('textures/8k_earth_daymap.jpg') })
-            );
+            earth = new THREE.Mesh(new THREE.SphereGeometry(1.2, 64, 64), new THREE.MeshPhongMaterial({ map: textureLoader.load('textures/8k_earth_daymap.jpg') }));
             scene.add(earth);
 
-            // Nubes
-            clouds = new THREE.Mesh(
-                new THREE.SphereGeometry(1.215, 64, 64),
-                new THREE.MeshPhongMaterial({ 
-                    alphaMap: textureLoader.load('textures/8k_earth_clouds.jpg'), 
-                    transparent: true, 
-                    color: 0xffffff 
-                })
-            );
+            clouds = new THREE.Mesh(new THREE.SphereGeometry(1.215, 64, 64), new THREE.MeshPhongMaterial({ alphaMap: textureLoader.load('textures/8k_earth_clouds.jpg'), transparent: true, color: 0xffffff }));
             scene.add(clouds);
 
-            // Fondo
-            const bg = new THREE.Mesh(
-                new THREE.SphereGeometry(90, 32, 32),
-                new THREE.MeshBasicMaterial({ 
-                    map: textureLoader.load('textures/8k_stars_milky_way.jpg'), 
-                    side: THREE.BackSide 
-                })
-            );
-            scene.add(bg);
+            scene.add(new THREE.Mesh(new THREE.SphereGeometry(90, 32, 32), new THREE.MeshBasicMaterial({ map: textureLoader.load('textures/8k_stars_milky_way.jpg'), side: THREE.BackSide })));
 
             setupTextCanvases();
             createSpatialUI();
 
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.08;
-
             // Gamepad
-            window.addEventListener("gamepadconnected", e => {
-                activeGamepad = e.gamepad.index;
-                console.log("Mando PS4 conectado:", e.gamepad.id);
-            });
+            window.addEventListener("gamepadconnected", e => { activeGamepad = e.gamepad.index; console.log("Mando PS4 conectado"); });
             window.addEventListener("gamepaddisconnected", () => activeGamepad = null);
 
-            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                effect.setSize(window.innerWidth, window.innerHeight);
+            });
+
             preloadLogos();
+            preloadOrganizations();
             animate();
         }
 
-        function setupTextCanvases() {
+        function setupTextCanvases() { /* igual que antes */ 
             leftCanvas = document.createElement('canvas'); leftCanvas.width = canvasW; leftCanvas.height = canvasH;
             leftCtx = leftCanvas.getContext('2d'); leftTexture = new THREE.CanvasTexture(leftCanvas);
 
@@ -312,26 +327,20 @@
             selectorCtx = selectorCanvas.getContext('2d'); selectorTexture = new THREE.CanvasTexture(selectorCanvas);
         }
 
-        function createSpatialUI() {
+        function createSpatialUI() { /* igual que antes */ 
             uiGroup = new THREE.Group();
-
             const panelGeo = new THREE.PlaneGeometry(3.6, 3.6);
+
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
-            leftPanelMesh.position.set(-4.2, 0.2, -1);
-            leftPanelMesh.rotation.y = 0.5;
+            leftPanelMesh.position.set(-4.2, 0.2, -1); leftPanelMesh.rotation.y = 0.5;
             uiGroup.add(leftPanelMesh);
 
             rightPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: rightTexture, transparent: true, side: THREE.DoubleSide }));
-            rightPanelMesh.position.set(4.2, 0.2, -1);
-            rightPanelMesh.rotation.y = -0.5;
+            rightPanelMesh.position.set(4.2, 0.2, -1); rightPanelMesh.rotation.y = -0.5;
             uiGroup.add(rightPanelMesh);
 
-            selectorPanelMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(4.2, 0.9),
-                new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide })
-            );
-            selectorPanelMesh.position.set(0, -2.3, -0.5);
-            selectorPanelMesh.rotation.x = -0.35;
+            selectorPanelMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide }));
+            selectorPanelMesh.position.set(0, -2.3, -0.5); selectorPanelMesh.rotation.x = -0.35;
             uiGroup.add(selectorPanelMesh);
 
             scene.add(uiGroup);
@@ -342,18 +351,8 @@
             keys.forEach(key => {
                 const img = new Image();
                 img.src = `logos/${key}.jpg`;
-                img.onload = () => {
-                    loadedImages[key] = img;
-                    if (key === currentOrgKey) renderUIElements();
-                };
+                img.onload = () => loadedImages[key] = img;
             });
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            effect.setSize(window.innerWidth, window.innerHeight);
         }
 
         function animate() {
@@ -363,7 +362,12 @@
             if (clouds) clouds.rotation.y += 0.00045;
 
             handleGamepadInput();
-            controls.update();
+
+            if (isVR && vrControls) {
+                vrControls.update();
+            } else {
+                orbitControls.update();
+            }
 
             if (isVR) {
                 effect.render(scene, camera);
@@ -381,8 +385,7 @@
             document.getElementById('reticle-left').style.display = 'block';
             document.getElementById('reticle-right').style.display = 'block';
 
-            // Cargar primera organización
-            await loadOrgData(currentOrgKey);
+            await preloadOrganizations();
             await renderUIElements();
         });
     </script>
