@@ -1,12 +1,22 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "OIEA",
+  "anio": 1957,
   "imagen": "logos/OIEA.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "El Organismo Internacional de Energía Atómica (OIEA) fue fundado el 29 de julio de 1957 en Viena, Austria. Es un organismo autónomo dentro del sistema de las Naciones Unidas.",
+    "Su misión principal es promover el uso pacífico, seguro y seguro de la energía nuclear en todo el mundo, y verificar que los materiales nucleares no sean desviados hacia usos militares (no proliferación).",
+    "Realiza inspecciones en instalaciones nucleares, proporciona asistencia técnica y científica a países en desarrollo, y juega un rol clave en seguridad nuclear, medicina nuclear, agricultura y generación de energía."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Arabia Saudita", "Argentina", "Armenia", "Australia", "Austria", "Azerbaiyán",
+    "Bahrein", "Bangladesh", "Bélgica", "Bolivia", "Brasil", "Bulgaria", "Burkina Faso", "Canadá", "Chile", "China",
+    "Colombia", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador", "Egipto", "El Salvador", "Emiratos Árabes Unidos",
+    "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia", "Francia", "Georgia", "Ghana", "Grecia",
+    "Guatemala", "Hungría", "India", "Indonesia", "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Japón",
+    "Jordania", "Kazajistán", "Kenya", "Kuwait", "Letonia", "Líbano", "Libia", "Lituania", "Luxemburgo", "Malasia",
+    "Marruecos", "México", "Mongolia", "Montenegro", "Myanmar", "Nigeria", "Noruega", "Nueva Zelanda", "Países Bajos", "Pakistán",
+    "Panamá", "Paraguay", "Perú", "Polonia", "Portugal", "Qatar", "Reino Unido", "República Checa", "Rumania", "Rusia",
+    "Senegal", "Serbia", "Singapur", "Siria", "Sudáfrica", "Sudán", "Suecia", "Suiza", "Tailandia", "Turquía",
+    "Ucrania", "Uganda", "Uruguay", "Uzbekistán", "Venezuela", "Vietnam", "Yemen", "Zambia"
   ]
 }
