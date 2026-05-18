@@ -3,351 +3,874 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VR Earth Experience - Organizaciones Mundiales</title>
+    <title>VR Earth Experience – Organizaciones Mundiales</title>
     <style>
-        body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; font-family:'Segoe UI', sans-serif; }
-        #permission-btn {
-            position: absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-            padding:20px 40px; font-size:20px; background:#007bff; color:white;
-            border:none; border-radius:8px; cursor:pointer; z-index:30;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            touch-action: none;
         }
-        #canvas-container { position:absolute; top:0; left:0; width:100vw; height:100vh; z-index:1; }
-        .v-reticle {
-            position:absolute; top:50%; left:50%; width:12px; height:12px; 
-            background:rgba(0,255,200,0.95); border:2px solid white; border-radius:50%;
-            transform:translate(-50%,-50%); z-index:20; display:none;
-            pointer-events:none; box-shadow:0 0 15px #00ffcc;
+
+        /* ── Pantalla de inicio ── */
+        #splash {
+            position: fixed; inset: 0; z-index: 100;
+            background: radial-gradient(ellipse at center, #0a1628 0%, #000 70%);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 28px;
+        }
+        #splash h1 {
+            color: #7df9ff; font-size: clamp(1.4rem, 5vw, 2.6rem);
+            letter-spacing: 0.12em; text-align: center; text-transform: uppercase;
+        }
+        #splash p {
+            color: rgba(255,255,255,0.55); font-size: 0.9rem;
+            text-align: center; max-width: 340px; line-height: 1.7;
+        }
+        #permission-btn {
+            padding: 18px 48px; font-size: 1.1rem; font-weight: 700;
+            background: linear-gradient(135deg, #007bff, #00d4ff);
+            color: #fff; border: none; border-radius: 50px;
+            cursor: pointer; letter-spacing: 0.08em;
+            box-shadow: 0 0 40px rgba(0,210,255,0.35);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        #permission-btn:hover { transform: scale(1.04); box-shadow: 0 0 60px rgba(0,210,255,0.55); }
+
+        /* ── Contenedor Three.js ── */
+        #canvas-container {
+            position: fixed; inset: 0; z-index: 1;
+        }
+
+        /* ── Retículo VR ── */
+        #reticle {
+            position: fixed; top: 50%; left: 50%;
+            width: 14px; height: 14px;
+            background: rgba(0,255,200,0.95);
+            border: 2px solid #fff; border-radius: 50%;
+            transform: translate(-50%,-50%);
+            z-index: 20; display: none; pointer-events: none;
+            box-shadow: 0 0 18px #00ffcc, 0 0 40px rgba(0,255,200,0.4);
+        }
+
+        /* ── HUD debug (esquina inferior izq) ── */
+        #debug-hud {
+            position: fixed; bottom: 12px; left: 12px; z-index: 50;
+            color: rgba(125,249,255,0.75); font-size: 0.6rem;
+            background: rgba(0,0,0,0.65); border: 1px solid rgba(125,249,255,0.2);
+            border-radius: 6px; padding: 8px 12px; line-height: 1.9;
+            pointer-events: none; font-family: monospace;
+        }
+
+        /* ── Controles hint ── */
+        #hint {
+            position: fixed; bottom: 12px; right: 12px; z-index: 50;
+            color: rgba(255,255,255,0.38); font-size: 0.6rem;
+            text-align: right; line-height: 1.9; pointer-events: none;
+        }
+
+        /* ── Toast notificación ── */
+        #toast {
+            position: fixed; top: 10%; left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: rgba(0,122,255,0.18);
+            border: 1px solid rgba(0,210,255,0.5);
+            border-radius: 999px; padding: 8px 22px;
+            color: #7df9ff; font-size: 0.85rem;
+            opacity: 0; transition: opacity 0.25s, transform 0.25s;
+            pointer-events: none; z-index: 60; white-space: nowrap;
+        }
+        #toast.show {
+            opacity: 1; transform: translateX(-50%) translateY(0);
+        }
+
+        /* ── Barra de carga ── */
+        #loader {
+            position: fixed; inset: 0; z-index: 90;
+            background: #000c1a;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 20px;
+            display: none;
+        }
+        #loader p { color: #7df9ff; font-size: 1rem; letter-spacing: 0.1em; }
+        #loader-bar-wrap {
+            width: 260px; height: 6px; background: rgba(255,255,255,0.1);
+            border-radius: 999px; overflow: hidden;
+        }
+        #loader-bar {
+            height: 100%; width: 0%; background: linear-gradient(90deg, #007bff, #00d4ff);
+            border-radius: 999px; transition: width 0.3s;
         }
     </style>
+
+    <!-- Three.js r134 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <!-- OrbitControls y DeviceOrientationControls desde el repo oficial r134 -->
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r134/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r134/examples/js/controls/DeviceOrientationControls.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r134/examples/js/effects/StereoEffect.js"></script>
 </head>
 <body>
-    <button id="permission-btn">Iniciar Experiencia VR</button>
-    <div id="canvas-container"></div>
-    <div id="reticle" class="v-reticle"></div>
 
-    <script>
-        // ==================== VARIABLES ====================
-        let currentOrgKey = "ONU";
-        let currentPaisPage = 0;
-        let currentInfoPage = 0;
-        const paisesPorPagina = 12;
+<!-- Splash / Botón de inicio -->
+<div id="splash">
+    <h1>🌍 VR Earth Experience</h1>
+    <p>Toca el botón para iniciar la experiencia VR con vista estereoscópica y control por giroscopio.</p>
+    <button id="permission-btn">▶ Iniciar Experiencia VR</button>
+    <p style="font-size:0.72rem; color:rgba(255,255,255,0.3)">
+        □ / ○ PS4: cambiar org &nbsp;|&nbsp; ✕: zoom &nbsp;|&nbsp; D-Pad: navegar
+    </p>
+</div>
 
-        let scene, camera, renderer, effect, orbitControls, vrControls, raycaster;
-        let earth, clouds, uiGroup, leftPanelMesh, rightPanelMesh, selectorPanelMesh;
-        let leftCanvas, leftCtx, rightCanvas, rightCtx, selectorCanvas, selectorCtx;
-        let leftTexture, rightTexture, selectorTexture;
+<!-- Loader -->
+<div id="loader">
+    <p id="loader-text">Cargando datos…</p>
+    <div id="loader-bar-wrap"><div id="loader-bar"></div></div>
+</div>
 
-        let isVR = false;
-        let activeGamepad = null;
+<!-- Canvas Three.js -->
+<div id="canvas-container"></div>
 
-        // Debounce mejorado
-        let buttonState = {
-            up: false, down: false, left: false, right: false,
-            square: false, circle: false, x: false
+<!-- Retículo VR -->
+<div id="reticle"></div>
+
+<!-- Debug HUD -->
+<div id="debug-hud">
+    🎮 GP: <span id="dbg-gp">—</span><br>
+    □: <span id="dbg-sq">○</span>
+    ○: <span id="dbg-ci">○</span>
+    ✕: <span id="dbg-x">○</span><br>
+    Org: <span id="dbg-org">—</span> &nbsp; VR: <span id="dbg-vr">OFF</span>
+</div>
+
+<!-- Hint controles -->
+<div id="hint">
+    □ Anterior &nbsp; ○ Siguiente<br>
+    ✕ Zoom inteligente<br>
+    D-Pad ↑↓ países · ←→ info<br>
+    Joystick izq: rotar Tierra
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+"use strict";
+// ══════════════════════════════════════════════════════════════════════════
+//  CONFIGURACIÓN DE ORGANIZACIONES
+//  Lista maestra independiente de la caché JSON — nunca queda vacía.
+// ══════════════════════════════════════════════════════════════════════════
+const ORG_KEYS = [
+    "ONU","OMS","UNESCO","UNICEF","FAO","OIT","FMI",
+    "Banco Mundial","ACNUR","INTERPOL","OMC","OTAN","LIT"
+];
+
+// ══════════════════════════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ══════════════════════════════════════════════════════════════════════════
+const APP = {
+    orgIndex:      0,
+    paisPage:      0,
+    infoPage:      0,
+    paisesPorPag:  12,
+    isVR:          false,
+    orgDataCache:  {},   // { ONU: { paises:[], info:[] }, … }
+    loadedLogos:   {},   // { ONU: HTMLImageElement, … }
+    renderPending: false // evitar render concurrente de canvas
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+//  GAMEPAD — Estado PREVIO para detección de flanco ascendente
+//  REGLA CRÍTICA: navigator.getGamepads() se llama en CADA frame.
+//  Los objetos Gamepad son snapshots; no se auto-actualizan.
+// ══════════════════════════════════════════════════════════════════════════
+const GP_BTN = { X:0, CIRCLE:1, SQUARE:2, TRIANGLE:3, L1:4, R1:5,
+                 D_UP:12, D_DOWN:13, D_LEFT:14, D_RIGHT:15 };
+
+const gpPrev = {
+    square:false, circle:false, x:false, triangle:false,
+    dUp:false, dDown:false, dLeft:false, dRight:false
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+//  THREE.JS — ESCENA
+// ══════════════════════════════════════════════════════════════════════════
+let scene, camera, renderer, stereoEffect;
+let orbitControls, vrControls;
+let earth, clouds, skybox;
+let uiGroup, leftMesh, rightMesh, selectorMesh;
+let leftCtx, rightCtx, selectorCtx;
+let leftTex, rightTex, selectorTex;
+let raycaster;
+
+const CANVAS_W = 2048, CANVAS_H = 1536;
+const TEX_LOADER = new THREE.TextureLoader();
+
+let frameCount = 0;
+
+// ══════════════════════════════════════════════════════════════════════════
+//  UTILIDADES UI
+// ══════════════════════════════════════════════════════════════════════════
+let toastTimer = null;
+function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+function setLoader(visible, text = 'Cargando…', pct = 0) {
+    const el = document.getElementById('loader');
+    el.style.display = visible ? 'flex' : 'none';
+    document.getElementById('loader-text').textContent = text;
+    document.getElementById('loader-bar').style.width = pct + '%';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  CARGA DE DATOS JSON
+// ══════════════════════════════════════════════════════════════════════════
+async function loadOrgData(key) {
+    if (APP.orgDataCache[key]) return APP.orgDataCache[key];
+    try {
+        const res = await fetch(`data/${key}.json`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        APP.orgDataCache[key] = data;
+        return data;
+    } catch (e) {
+        console.warn(`[DATA] No se pudo cargar data/${key}.json:`, e.message);
+        // Datos de respaldo para no romper la UI
+        APP.orgDataCache[key] = {
+            paises: ["Sin datos disponibles"],
+            info:   ["Información no disponible para " + key]
         };
+        return APP.orgDataCache[key];
+    }
+}
 
-        const canvasW = 2048, canvasH = 1536;
-        const textureLoader = new THREE.TextureLoader();
-        const loadedImages = {};
-        const orgDataCache = {};
+async function preloadAllOrgs() {
+    for (let i = 0; i < ORG_KEYS.length; i++) {
+        setLoader(true, `Cargando ${ORG_KEYS[i]}…`, Math.round((i / ORG_KEYS.length) * 100));
+        await loadOrgData(ORG_KEYS[i]);
+    }
+    setLoader(false);
+}
 
-        // ==================== CARGA DE DATOS ====================
-        async function loadOrgData(key) {
-            if (orgDataCache[key]) return orgDataCache[key];
-            try {
-                const res = await fetch(`data/${key}.json`);
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                orgDataCache[key] = data;
-                return data;
-            } catch (e) {
-                console.warn(`No se pudo cargar ${key}.json`);
-                return { paises: ["Sin datos"], info: ["Información no disponible"] };
-            }
+function preloadLogos() {
+    ORG_KEYS.forEach(key => {
+        // Soportar .jpg y .png según la carpeta logos/
+        const img = new Image();
+        img.onload = () => { APP.loadedLogos[key] = img; };
+        img.onerror = () => {
+            // Intentar la otra extensión
+            const img2 = new Image();
+            img2.onload = () => { APP.loadedLogos[key] = img2; };
+            img2.src = `logos/${key}.png`;
+        };
+        img.src = `logos/${key}.jpg`;
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  RENDER DE PANELES CANVAS → THREE.JS TEXTURE
+// ══════════════════════════════════════════════════════════════════════════
+function wrapText(ctx, text, x, y, maxW, lineH) {
+    if (!text) return;
+    const words = text.split(' ');
+    let line = '';
+    for (const w of words) {
+        const test = line + w + ' ';
+        if (ctx.measureText(test).width > maxW && line !== '') {
+            ctx.fillText(line.trimEnd(), x, y);
+            line = w + ' ';
+            y += lineH;
+        } else {
+            line = test;
         }
+    }
+    if (line.trim()) ctx.fillText(line.trimEnd(), x, y);
+}
 
-        async function preloadOrganizations() {
-            const keys = ["ONU","OMS","UNESCO","UNICEF","FAO","OIT","FMI","Banco Mundial","ACNUR"];
-            for (let key of keys) await loadOrgData(key);
-        }
+async function renderPanels() {
+    if (APP.renderPending) return;
+    APP.renderPending = true;
 
-        // ==================== RENDER UI ====================
-        async function renderUIElements() {
-            const data = await loadOrgData(currentOrgKey);
-            leftCtx.clearRect(0,0,canvasW,canvasH);
-            rightCtx.clearRect(0,0,canvasW,canvasH);
-            selectorCtx.clearRect(0,0,1024,240);
+    const key  = ORG_KEYS[APP.orgIndex];
+    const data = await loadOrgData(key);
 
-            // Panel Izquierdo
-            leftCtx.fillStyle = "rgba(6,10,22,0.96)"; leftCtx.fillRect(0,0,canvasW,canvasH);
-            leftCtx.strokeStyle = "#007bff"; leftCtx.lineWidth = 28; leftCtx.strokeRect(0,0,canvasW,canvasH);
-            leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 130px Segoe UI";
-            leftCtx.fillText("PAÍSES MIEMBROS", 120, 180);
-            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 92px Segoe UI";
-            let y = 420;
-            data.paises.slice(currentPaisPage * paisesPorPagina, currentPaisPage * paisesPorPagina + paisesPorPagina)
-                .forEach(p => { leftCtx.fillText(`• ${p}`, 140, y); y += 130; });
-            leftTexture.needsUpdate = true;
+    // ── Panel IZQUIERDO – Países miembros ──────────────────────────────
+    {
+        const ctx = leftCtx;
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.fillStyle = "rgba(4,8,20,0.97)";
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-            // Panel Derecho
-            rightCtx.fillStyle = "rgba(6,10,22,0.96)"; rightCtx.fillRect(0,0,canvasW,canvasH);
-            rightCtx.strokeStyle = "#007bff"; rightCtx.lineWidth = 28; rightCtx.strokeRect(0,0,canvasW,canvasH);
-            if (loadedImages[currentOrgKey]) rightCtx.drawImage(loadedImages[currentOrgKey], 824, 80, 400, 400);
-            rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 150px Segoe UI"; rightCtx.textAlign = "center";
-            rightCtx.fillText(currentOrgKey.toUpperCase(), 1024, 580);
-            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "92px Segoe UI"; rightCtx.textAlign = "left";
-            wrapText(rightCtx, data.info[currentInfoPage] || "", 120, 780, 1800, 130);
-            rightTexture.needsUpdate = true;
+        // Borde
+        ctx.strokeStyle = "#007bff"; ctx.lineWidth = 24;
+        ctx.strokeRect(12, 12, CANVAS_W - 24, CANVAS_H - 24);
 
-            // Selector
-            selectorCtx.fillStyle = "rgba(10,18,36,0.96)"; selectorCtx.fillRect(0,0,1024,240);
-            selectorCtx.strokeStyle = "#007bff"; selectorCtx.lineWidth = 14; selectorCtx.strokeRect(0,0,1024,240);
-            selectorCtx.fillStyle = "#ffffff"; selectorCtx.font = "bold 110px Segoe UI"; selectorCtx.textAlign = "center";
-            selectorCtx.fillText(currentOrgKey, 512, 165);
-            selectorTexture.needsUpdate = true;
-        }
+        // Título
+        ctx.fillStyle = "#00a2ff";
+        ctx.font = "bold 110px Segoe UI";
+        ctx.textAlign = "left";
+        ctx.fillText("PAÍSES MIEMBROS", 100, 160);
 
-        function wrapText(ctx, text, x, y, maxW, lineH) {
-            const words = text.split(' ');
-            let line = '';
-            for (let w of words) {
-                let test = line + w + ' ';
-                if (ctx.measureText(test).width > maxW && line) {
-                    ctx.fillText(line, x, y);
-                    line = w + ' ';
-                    y += lineH;
-                } else line = test;
-            }
-            ctx.fillText(line, x, y);
-        }
+        // Línea divisoria
+        ctx.strokeStyle = "rgba(0,162,255,0.35)"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(100, 195); ctx.lineTo(CANVAS_W - 100, 195); ctx.stroke();
 
-        // ==================== ZOOM X ====================
-        function zoomToPoint() {
-            if (!raycaster || !earth) return;
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const hits = raycaster.intersectObjects([earth, leftPanelMesh, rightPanelMesh]);
+        // Lista de países
+        const paises = data.paises || [];
+        const start  = APP.paisPage * APP.paisesPorPag;
+        const slice  = paises.slice(start, start + APP.paisesPorPag);
 
-            if (hits.length > 0) {
-                const hit = hits[0];
-                if (hit.object === earth) {
-                    const target = hit.point.clone().normalize().multiplyScalar(3.3);
-                    animateCameraTo(target, hit.point);
-                } else if (hit.object === leftPanelMesh) {
-                    animateCameraTo(new THREE.Vector3(-6, 0, 1), new THREE.Vector3(-4.2, 0.2, -1));
-                } else if (hit.object === rightPanelMesh) {
-                    animateCameraTo(new THREE.Vector3(6, 0, 1), new THREE.Vector3(4.2, 0.2, -1));
-                }
-            } else {
-                animateCameraTo(new THREE.Vector3(0, 0, 7), new THREE.Vector3(0, 0, 0));
-            }
-        }
-
-        function animateCameraTo(targetPos, lookTarget) {
-            const startPos = camera.position.clone();
-            const startLook = orbitControls.target.clone();
-            let progress = 0;
-            const startTime = Date.now();
-            const duration = 900;
-
-            function step() {
-                progress = (Date.now() - startTime) / duration;
-                const t = Math.min(progress, 1);
-                const ease = 1 - Math.pow(1 - t, 3);
-
-                camera.position.lerpVectors(startPos, targetPos, ease);
-                orbitControls.target.lerpVectors(startLook, lookTarget, ease);
-
-                if (t < 1) requestAnimationFrame(step);
-            }
-            step();
-        }
-
-        // ==================== GAMEPAD (PS4) ====================
-        function handleGamepadInput() {
-            if (activeGamepad === null) return;
-            const gp = navigator.getGamepads()[activeGamepad];
-            if (!gp) return;
-
-            // Joystick rotar Tierra
-            if (Math.abs(gp.axes[0]) > 0.15) earth.rotation.y += gp.axes[0] * 0.045;
-            if (Math.abs(gp.axes[1]) > 0.15) earth.rotation.x += gp.axes[1] * 0.045;
-
-            // D-PAD
-            if (gp.buttons[12].pressed && !buttonState.up) { buttonState.up = true; scrollPaises(-1); }
-            else if (!gp.buttons[12].pressed) buttonState.up = false;
-
-            if (gp.buttons[13].pressed && !buttonState.down) { buttonState.down = true; scrollPaises(1); }
-            else if (!gp.buttons[13].pressed) buttonState.down = false;
-
-            if (gp.buttons[14].pressed && !buttonState.left) { buttonState.left = true; currentInfoPage = (currentInfoPage - 1 + 3) % 3; renderUIElements(); }
-            else if (!gp.buttons[14].pressed) buttonState.left = false;
-
-            if (gp.buttons[15].pressed && !buttonState.right) { buttonState.right = true; currentInfoPage = (currentInfoPage + 1) % 3; renderUIElements(); }
-            else if (!gp.buttons[15].pressed) buttonState.right = false;
-
-            // □ Cambiar organización anterior
-            if (gp.buttons[2].pressed && !buttonState.square) {
-                buttonState.square = true;
-                navegarOrganizaciones(-1);
-            } else if (!gp.buttons[2].pressed) buttonState.square = false;
-
-            // ○ Cambiar organización siguiente
-            if (gp.buttons[1].pressed && !buttonState.circle) {
-                buttonState.circle = true;
-                navegarOrganizaciones(1);
-            } else if (!gp.buttons[1].pressed) buttonState.circle = false;
-
-            // X Zoom
-            if (gp.buttons[0].pressed && !buttonState.x) {
-                buttonState.x = true;
-                zoomToPoint();
-            } else if (!gp.buttons[0].pressed) buttonState.x = false;
-        }
-
-        function scrollPaises(dir) {
-            const data = orgDataCache[currentOrgKey];
-            if (!data) return;
-            const max = Math.ceil(data.paises.length / paisesPorPagina) || 1;
-            currentPaisPage = (currentPaisPage + dir + max) % max;
-            renderUIElements();
-        }
-
-        async function navegarOrganizaciones(dir) {
-            const keys = Object.keys(orgDataCache);
-            if (keys.length < 1) return;
-
-            let idx = keys.indexOf(currentOrgKey);
-            if (idx === -1) idx = 0;
-
-            idx = (idx + dir + keys.length) % keys.length;
-            currentOrgKey = keys[idx];
-            currentPaisPage = 0;
-            currentInfoPage = 0;
-
-            console.log(`✅ Organización cambiada a: ${currentOrgKey}`);
-            await renderUIElements();
-        }
-
-        // ==================== INIT ====================
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 5.8);
-
-            renderer = new THREE.WebGLRenderer({antialias:true});
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            effect = new THREE.StereoEffect(renderer);
-            effect.setSize(window.innerWidth, window.innerHeight);
-
-            raycaster = new THREE.Raycaster();
-
-            orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
-            orbitControls.enableDamping = true;
-            orbitControls.dampingFactor = 0.12;
-
-            vrControls = new THREE.DeviceOrientationControls(camera);
-
-            // Luces y Tierra
-            scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-            const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(5,8,6); scene.add(dl);
-
-            earth = new THREE.Mesh(new THREE.SphereGeometry(1.2,64,64), new THREE.MeshPhongMaterial({map: textureLoader.load('textures/8k_earth_daymap.jpg')}));
-            scene.add(earth);
-
-            clouds = new THREE.Mesh(new THREE.SphereGeometry(1.215,64,64), new THREE.MeshPhongMaterial({alphaMap: textureLoader.load('textures/8k_earth_clouds.jpg'), transparent:true, color:0xffffff}));
-            scene.add(clouds);
-
-            scene.add(new THREE.Mesh(new THREE.SphereGeometry(90,32,32), new THREE.MeshBasicMaterial({map: textureLoader.load('textures/8k_stars_milky_way.jpg'), side: THREE.BackSide})));
-
-            setupTextCanvases();
-            createSpatialUI();
-
-            window.addEventListener("gamepadconnected", e => {
-                activeGamepad = e.gamepad.index;
-                console.log("🎮 Mando PS4 conectado:", e.gamepad.id);
-            });
-
-            window.addEventListener("gamepaddisconnected", () => activeGamepad = null);
-
-            preloadLogos();
-            preloadOrganizations();
-            animate();
-        }
-
-        function setupTextCanvases() {
-            leftCanvas = document.createElement('canvas'); leftCanvas.width = canvasW; leftCanvas.height = canvasH;
-            leftCtx = leftCanvas.getContext('2d'); leftTexture = new THREE.CanvasTexture(leftCanvas);
-
-            rightCanvas = document.createElement('canvas'); rightCanvas.width = canvasW; rightCanvas.height = canvasH;
-            rightCtx = rightCanvas.getContext('2d'); rightTexture = new THREE.CanvasTexture(rightCanvas);
-
-            selectorCanvas = document.createElement('canvas'); selectorCanvas.width = 1024; selectorCanvas.height = 240;
-            selectorCtx = selectorCanvas.getContext('2d'); selectorTexture = new THREE.CanvasTexture(selectorCanvas);
-        }
-
-        function createSpatialUI() {
-            uiGroup = new THREE.Group();
-            const geo = new THREE.PlaneGeometry(3.6, 3.6);
-
-            leftPanelMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map: leftTexture, transparent: true, side: THREE.DoubleSide}));
-            leftPanelMesh.position.set(-4.2, 0.2, -1); leftPanelMesh.rotation.y = 0.5;
-            uiGroup.add(leftPanelMesh);
-
-            rightPanelMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map: rightTexture, transparent: true, side: THREE.DoubleSide}));
-            rightPanelMesh.position.set(4.2, 0.2, -1); rightPanelMesh.rotation.y = -0.5;
-            uiGroup.add(rightPanelMesh);
-
-            selectorPanelMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), new THREE.MeshBasicMaterial({map: selectorTexture, transparent: true, side: THREE.DoubleSide}));
-            selectorPanelMesh.position.set(0, -2.3, -0.5); selectorPanelMesh.rotation.x = -0.35;
-            uiGroup.add(selectorPanelMesh);
-
-            scene.add(uiGroup);
-        }
-
-        function preloadLogos() {
-            const keys = ["ONU","OMS","UNESCO","UNICEF","FAO","OIT","FMI","Banco Mundial"];
-            keys.forEach(k => {
-                const img = new Image();
-                img.src = `logos/${k}.jpg`;
-                img.onload = () => loadedImages[k] = img;
-            });
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (earth) earth.rotation.y += 0.0002;
-            if (clouds) clouds.rotation.y += 0.0004;
-
-            handleGamepadInput();
-
-            if (isVR) {
-                vrControls.update();
-                effect.render(scene, camera);
-            } else {
-                orbitControls.update();
-                renderer.render(scene, camera);
-            }
-        }
-
-        // ==================== START ====================
-        init();
-
-        document.getElementById('permission-btn').addEventListener('click', async () => {
-            document.getElementById('permission-btn').style.display = 'none';
-            isVR = true;
-            document.getElementById('reticle').style.display = 'block';
-
-            await preloadOrganizations();
-            await renderUIElements();
-            console.log("🚀 Experiencia VR iniciada - Controles listos");
+        ctx.fillStyle = "#e8f4ff";
+        ctx.font = "78px Segoe UI";
+        let y = 360;
+        slice.forEach(p => {
+            ctx.fillText(`• ${p}`, 120, y);
+            y += 120;
         });
-    </script>
+
+        // Paginación
+        const totalPages = Math.max(1, Math.ceil(paises.length / APP.paisesPorPag));
+        ctx.fillStyle = "rgba(0,162,255,0.6)";
+        ctx.font = "60px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText(`Página ${APP.paisPage + 1} / ${totalPages}`, CANVAS_W / 2, CANVAS_H - 80);
+
+        leftTex.needsUpdate = true;
+    }
+
+    // ── Panel DERECHO – Info de la organización ────────────────────────
+    {
+        const ctx = rightCtx;
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.fillStyle = "rgba(4,8,20,0.97)";
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Borde
+        ctx.strokeStyle = "#007bff"; ctx.lineWidth = 24;
+        ctx.strokeRect(12, 12, CANVAS_W - 24, CANVAS_H - 24);
+
+        // Logo si existe
+        const logo = APP.loadedLogos[key];
+        if (logo) {
+            // Recuadro logo
+            ctx.fillStyle = "rgba(255,255,255,0.06)";
+            ctx.fillRect(CANVAS_W / 2 - 220, 60, 440, 440);
+            ctx.drawImage(logo, CANVAS_W / 2 - 200, 80, 400, 400);
+        }
+
+        // Nombre organización
+        ctx.fillStyle = "#00a2ff";
+        ctx.font = "bold 140px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText(key.toUpperCase(), CANVAS_W / 2, 580);
+
+        // Línea divisoria
+        ctx.strokeStyle = "rgba(0,162,255,0.35)"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(100, 620); ctx.lineTo(CANVAS_W - 100, 620); ctx.stroke();
+
+        // Texto info
+        ctx.fillStyle = "#ddf0ff";
+        ctx.font = "80px Segoe UI"; ctx.textAlign = "left";
+        const info = data.info || [];
+        const infoPage = APP.infoPage % Math.max(1, info.length);
+        wrapText(ctx, info[infoPage] || "Sin información.", 100, 740, CANVAS_W - 200, 120);
+
+        // Paginación info
+        ctx.fillStyle = "rgba(0,162,255,0.6)";
+        ctx.font = "60px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText(`${infoPage + 1} / ${Math.max(1, info.length)}`, CANVAS_W / 2, CANVAS_H - 80);
+
+        rightTex.needsUpdate = true;
+    }
+
+    // ── Panel SELECTOR – Nombre org abajo ─────────────────────────────
+    {
+        const ctx = selectorCtx;
+        ctx.clearRect(0, 0, 1024, 280);
+        ctx.fillStyle = "rgba(4,10,28,0.97)";
+        ctx.fillRect(0, 0, 1024, 280);
+
+        ctx.strokeStyle = "#007bff"; ctx.lineWidth = 12;
+        ctx.strokeRect(6, 6, 1012, 268);
+
+        // Indicador prev/next
+        const prevKey = ORG_KEYS[(APP.orgIndex - 1 + ORG_KEYS.length) % ORG_KEYS.length];
+        const nextKey = ORG_KEYS[(APP.orgIndex + 1) % ORG_KEYS.length];
+
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
+        ctx.font = "55px Segoe UI"; ctx.textAlign = "left";
+        ctx.fillText(`‹ ${prevKey}`, 30, 165);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 100px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText(key, 512, 180);
+
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
+        ctx.font = "55px Segoe UI"; ctx.textAlign = "right";
+        ctx.fillText(`${nextKey} ›`, 994, 165);
+
+        // Índice
+        ctx.fillStyle = "rgba(0,162,255,0.6)";
+        ctx.font = "48px Segoe UI"; ctx.textAlign = "center";
+        ctx.fillText(`${APP.orgIndex + 1} / ${ORG_KEYS.length}`, 512, 250);
+
+        selectorTex.needsUpdate = true;
+    }
+
+    // Debug HUD
+    document.getElementById('dbg-org').textContent = `${APP.orgIndex} · ${key}`;
+    APP.renderPending = false;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  NAVEGACIÓN
+// ══════════════════════════════════════════════════════════════════════════
+async function navegarOrg(dir) {
+    APP.orgIndex  = (APP.orgIndex + dir + ORG_KEYS.length) % ORG_KEYS.length;
+    APP.paisPage  = 0;
+    APP.infoPage  = 0;
+    const key = ORG_KEYS[APP.orgIndex];
+    console.log(`[NAV] Organización → ${APP.orgIndex} (${key})`);
+    showToast(dir > 0 ? `○  ${key}` : `□  ${key}`);
+    await renderPanels();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  ZOOM INTELIGENTE CON RAYCASTING
+// ══════════════════════════════════════════════════════════════════════════
+let zoomedIn = false;
+
+function zoomToPoint() {
+    if (!raycaster || !earth) return;
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const hits = raycaster.intersectObjects([earth, leftMesh, rightMesh]);
+
+    let targetPos, lookAt;
+
+    if (zoomedIn) {
+        // Siempre zoom-out si ya estábamos zoom-in
+        targetPos = new THREE.Vector3(0, 0, 7);
+        lookAt     = new THREE.Vector3(0, 0, 0);
+        zoomedIn   = false;
+        console.log('[ZOOM] OUT');
+        showToast('✕  Vista general');
+    } else if (hits.length > 0) {
+        const hit = hits[0];
+        if (hit.object === earth) {
+            const pt = hit.point.clone().normalize().multiplyScalar(3.2);
+            targetPos = pt;
+            lookAt    = hit.point;
+            zoomedIn  = true;
+            console.log('[ZOOM] IN → Tierra');
+            showToast('✕  Zoom Tierra');
+        } else if (hit.object === leftMesh) {
+            targetPos = new THREE.Vector3(-5.5, 0.2, 1.5);
+            lookAt    = new THREE.Vector3(-4.2, 0.2, -1);
+            zoomedIn  = true;
+            console.log('[ZOOM] IN → Panel izquierdo');
+            showToast('✕  Zoom Panel Países');
+        } else if (hit.object === rightMesh) {
+            targetPos = new THREE.Vector3(5.5, 0.2, 1.5);
+            lookAt    = new THREE.Vector3(4.2, 0.2, -1);
+            zoomedIn  = true;
+            console.log('[ZOOM] IN → Panel derecho');
+            showToast('✕  Zoom Panel Info');
+        } else {
+            targetPos = new THREE.Vector3(0, 0, 7);
+            lookAt    = new THREE.Vector3(0, 0, 0);
+        }
+    } else {
+        targetPos = new THREE.Vector3(0, 0, 7);
+        lookAt    = new THREE.Vector3(0, 0, 0);
+        zoomedIn  = false;
+        showToast('✕  Vista general');
+    }
+
+    animateCameraTo(targetPos, lookAt);
+}
+
+function animateCameraTo(targetPos, lookTarget) {
+    const startPos  = camera.position.clone();
+    const startLook = orbitControls.target.clone();
+    const startTime = performance.now();
+    const duration  = 900;
+
+    function step(now) {
+        const t    = Math.min((now - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+        camera.position.lerpVectors(startPos, targetPos, ease);
+        orbitControls.target.lerpVectors(startLook, lookTarget, ease);
+        orbitControls.update();
+
+        if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  GAMEPAD POLLING — se llama en CADA frame del loop de animación
+//  ⚠️ NUNCA cachear el objeto Gamepad entre frames.
+// ══════════════════════════════════════════════════════════════════════════
+function pollGamepad() {
+    // Obtener snapshot FRESCO en cada frame (obligatorio con la API Gamepad)
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+
+    let gp = null;
+    for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i] && gamepads[i].connected) { gp = gamepads[i]; break; }
+    }
+
+    // Actualizar HUD debug
+    const dbgGP = document.getElementById('dbg-gp');
+    if (!gp) {
+        if (frameCount % 180 === 0) dbgGP.textContent = 'no detectado';
+        // Limpiar estado previo para no quedar "pegado"
+        Object.keys(gpPrev).forEach(k => gpPrev[k] = false);
+        return;
+    }
+    dbgGP.textContent = gp.id.substring(0, 28);
+
+    // ── Leer botones actuales ──────────────────────────────────────────
+    const btn = (i) => gp.buttons[i]?.pressed ?? false;
+
+    const currSQ   = btn(GP_BTN.SQUARE);
+    const currCI   = btn(GP_BTN.CIRCLE);
+    const currX    = btn(GP_BTN.X);
+    const currTRI  = btn(GP_BTN.TRIANGLE);
+    const currDU   = btn(GP_BTN.D_UP);
+    const currDD   = btn(GP_BTN.D_DOWN);
+    const currDL   = btn(GP_BTN.D_LEFT);
+    const currDR   = btn(GP_BTN.D_RIGHT);
+
+    // ── Actualizar debug HUD ───────────────────────────────────────────
+    document.getElementById('dbg-sq').textContent = currSQ ? '●' : '○';
+    document.getElementById('dbg-ci').textContent = currCI ? '●' : '○';
+    document.getElementById('dbg-x').textContent  = currX  ? '●' : '○';
+
+    // ── Log periódico de botones presionados ──────────────────────────
+    if (frameCount % 120 === 0) {
+        const pressed = Array.from(gp.buttons)
+            .map((b, i) => b.pressed ? i : null).filter(i => i !== null);
+        if (pressed.length) console.log(`[GP] Botones presionados:`, pressed);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  DETECCIÓN DE FLANCO ASCENDENTE (false→true)
+    //  Solo se ejecuta UNA vez por pulsación, sin importar cuántos
+    //  frames dure el botón presionado.
+    // ══════════════════════════════════════════════════════════════════
+
+    if (currSQ  && !gpPrev.square)   { console.log('[BTN] □ Square → prevOrg'); navegarOrg(-1); }
+    if (currCI  && !gpPrev.circle)   { console.log('[BTN] ○ Circle → nextOrg'); navegarOrg(+1); }
+    if (currX   && !gpPrev.x)        { console.log('[BTN] ✕ X → zoom');         zoomToPoint(); }
+    if (currTRI && !gpPrev.triangle) {
+        console.log('[BTN] △ Triangle → reset cámara');
+        animateCameraTo(new THREE.Vector3(0,0,7), new THREE.Vector3(0,0,0));
+        zoomedIn = false;
+        showToast('△  Reset cámara');
+    }
+
+    if (currDU && !gpPrev.dUp) {
+        APP.paisPage = Math.max(0, APP.paisPage - 1);
+        renderPanels();
+    }
+    if (currDD && !gpPrev.dDown) {
+        const data = APP.orgDataCache[ORG_KEYS[APP.orgIndex]];
+        const max  = data ? Math.ceil(data.paises.length / APP.paisesPorPag) : 1;
+        APP.paisPage = Math.min(APP.paisPage + 1, max - 1);
+        renderPanels();
+    }
+    if (currDL && !gpPrev.dLeft) {
+        const data = APP.orgDataCache[ORG_KEYS[APP.orgIndex]];
+        const max  = data ? Math.max(1, data.info.length) : 1;
+        APP.infoPage = (APP.infoPage - 1 + max) % max;
+        renderPanels();
+    }
+    if (currDR && !gpPrev.dRight) {
+        const data = APP.orgDataCache[ORG_KEYS[APP.orgIndex]];
+        const max  = data ? Math.max(1, data.info.length) : 1;
+        APP.infoPage = (APP.infoPage + 1) % max;
+        renderPanels();
+    }
+
+    // ── Joystick izquierdo → rotar Tierra ────────────────────────────
+    if (earth) {
+        const ax0 = gp.axes[0] ?? 0;
+        const ax1 = gp.axes[1] ?? 0;
+        if (Math.abs(ax0) > 0.12) earth.rotation.y += ax0 * 0.04;
+        if (Math.abs(ax1) > 0.12) earth.rotation.x += ax1 * 0.04;
+    }
+
+    // ── Joystick derecho → zoom analógico ────────────────────────────
+    {
+        const ax3 = gp.axes[3] ?? 0;
+        if (Math.abs(ax3) > 0.12) {
+            const dist = camera.position.length();
+            const newD = THREE.MathUtils.clamp(dist + ax3 * 0.12, 2.5, 12);
+            camera.position.setLength(newD);
+        }
+    }
+
+    // ── Guardar estado anterior ───────────────────────────────────────
+    gpPrev.square   = currSQ;
+    gpPrev.circle   = currCI;
+    gpPrev.x        = currX;
+    gpPrev.triangle = currTRI;
+    gpPrev.dUp      = currDU;
+    gpPrev.dDown    = currDD;
+    gpPrev.dLeft    = currDL;
+    gpPrev.dRight   = currDR;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  TECLADO (fallback escritorio)
+// ══════════════════════════════════════════════════════════════════════════
+window.addEventListener('keydown', (e) => {
+    switch (e.code) {
+        case 'ArrowRight': case 'KeyD': navegarOrg(+1); break;
+        case 'ArrowLeft':  case 'KeyA': navegarOrg(-1); break;
+        case 'Space':      case 'Enter': zoomToPoint();  break;
+        case 'ArrowUp':    case 'KeyW':
+            APP.paisPage = Math.max(0, APP.paisPage - 1); renderPanels(); break;
+        case 'ArrowDown':  case 'KeyS':
+            APP.paisPage++; renderPanels(); break;
+        case 'KeyQ': APP.infoPage = Math.max(0, APP.infoPage - 1); renderPanels(); break;
+        case 'KeyE': APP.infoPage++; renderPanels(); break;
+        case 'KeyR':
+            animateCameraTo(new THREE.Vector3(0,0,7), new THREE.Vector3(0,0,0));
+            zoomedIn = false; showToast('Reset cámara'); break;
+    }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//  INIT THREE.JS
+// ══════════════════════════════════════════════════════════════════════════
+function initThree() {
+    // Escena
+    scene = new THREE.Scene();
+
+    // Cámara
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 7);
+
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    // StereoEffect (vista estereoscópica VR Box)
+    stereoEffect = new THREE.StereoEffect(renderer);
+    stereoEffect.setSize(window.innerWidth, window.innerHeight);
+
+    // OrbitControls (modo escritorio / fallback)
+    orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.1;
+    orbitControls.minDistance   = 2.5;
+    orbitControls.maxDistance   = 14;
+    orbitControls.target.set(0, 0, 0);
+
+    // DeviceOrientationControls (giroscopio VR)
+    vrControls = new THREE.DeviceOrientationControls(camera);
+
+    // Raycaster
+    raycaster = new THREE.Raycaster();
+
+    // ── Luces ──
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const sun = new THREE.DirectionalLight(0xfff5e0, 1.1);
+    sun.position.set(5, 8, 6);
+    scene.add(sun);
+    const rim = new THREE.DirectionalLight(0x3366ff, 0.35);
+    rim.position.set(-4, -2, -4);
+    scene.add(rim);
+
+    // ── Tierra ──
+    earth = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 64, 64),
+        new THREE.MeshPhongMaterial({
+            map:       TEX_LOADER.load('textures/8k_earth_daymap.jpg'),
+            specular:  new THREE.Color(0x224466),
+            shininess: 35
+        })
+    );
+    scene.add(earth);
+
+    // ── Nubes ──
+    clouds = new THREE.Mesh(
+        new THREE.SphereGeometry(1.215, 64, 64),
+        new THREE.MeshPhongMaterial({
+            alphaMap:    TEX_LOADER.load('textures/8k_earth_clouds.jpg'),
+            transparent: true,
+            color:       0xffffff,
+            opacity:     0.85,
+            depthWrite:  false
+        })
+    );
+    scene.add(clouds);
+
+    // ── Skybox de estrellas ──
+    skybox = new THREE.Mesh(
+        new THREE.SphereGeometry(90, 32, 32),
+        new THREE.MeshBasicMaterial({
+            map:  TEX_LOADER.load('textures/8k_stars_milky_way.jpg'),
+            side: THREE.BackSide
+        })
+    );
+    scene.add(skybox);
+
+    // ── Atmósfera glow ──
+    scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry(1.28, 64, 64),
+        new THREE.MeshPhongMaterial({
+            color:       0x4499ff,
+            emissive:    0x0033aa,
+            transparent: true,
+            opacity:     0.10,
+            side:        THREE.FrontSide,
+            depthWrite:  false
+        })
+    ));
+
+    // ── Canvases de UI ──
+    const makeCanvas = (w, h) => {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        return c;
+    };
+
+    const lc = makeCanvas(CANVAS_W, CANVAS_H); leftCtx  = lc.getContext('2d'); leftTex  = new THREE.CanvasTexture(lc);
+    const rc = makeCanvas(CANVAS_W, CANVAS_H); rightCtx = rc.getContext('2d'); rightTex = new THREE.CanvasTexture(rc);
+    const sc = makeCanvas(1024, 280);           selectorCtx = sc.getContext('2d'); selectorTex = new THREE.CanvasTexture(sc);
+
+    // ── Paneles UI 3D ──
+    uiGroup = new THREE.Group();
+
+    const pGeo = new THREE.PlaneGeometry(3.6, 3.6);
+    const pMat = (tex) => new THREE.MeshBasicMaterial({
+        map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false
+    });
+
+    leftMesh = new THREE.Mesh(pGeo, pMat(leftTex));
+    leftMesh.position.set(-4.2, 0.2, -1);
+    leftMesh.rotation.y = 0.5;
+    uiGroup.add(leftMesh);
+
+    rightMesh = new THREE.Mesh(pGeo, pMat(rightTex));
+    rightMesh.position.set(4.2, 0.2, -1);
+    rightMesh.rotation.y = -0.5;
+    uiGroup.add(rightMesh);
+
+    selectorMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(4.5, 1.0),
+        pMat(selectorTex)
+    );
+    selectorMesh.position.set(0, -2.35, -0.5);
+    selectorMesh.rotation.x = -0.35;
+    uiGroup.add(selectorMesh);
+
+    scene.add(uiGroup);
+
+    // ── Resize ──
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        stereoEffect.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ── Eventos de gamepad ──
+    window.addEventListener('gamepadconnected', (e) => {
+        console.log(`[GP] Conectado: "${e.gamepad.id}" | índice ${e.gamepad.index} | botones: ${e.gamepad.buttons.length}`);
+        showToast('🎮 Mando conectado');
+    });
+    window.addEventListener('gamepaddisconnected', (e) => {
+        console.log(`[GP] Desconectado: índice ${e.gamepad.index}`);
+        showToast('🎮 Mando desconectado');
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  LOOP DE ANIMACIÓN
+// ══════════════════════════════════════════════════════════════════════════
+function animate() {
+    requestAnimationFrame(animate);
+    frameCount++;
+
+    // 1. Gamepad — SIEMPRE primero, cada frame
+    pollGamepad();
+
+    // 2. Rotación automática tierra/nubes
+    if (earth)  earth.rotation.y  += 0.00018;
+    if (clouds) clouds.rotation.y += 0.00028;
+
+    // 3. Controles de cámara:
+    //    - En modo VR: DeviceOrientationControls domina, OrbitControls desactivado
+    //    - En modo escritorio: solo OrbitControls
+    if (APP.isVR) {
+        vrControls.update();
+        // En VR con giroscopio no actualizamos orbitControls para no interferir
+        stereoEffect.render(scene, camera);
+    } else {
+        orbitControls.update();
+        renderer.render(scene, camera);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  INICIO — Botón de inicio con solicitud de permisos
+// ══════════════════════════════════════════════════════════════════════════
+document.getElementById('permission-btn').addEventListener('click', async () => {
+    // 1. Solicitar permiso de giroscopio (iOS 13+)
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+            const perm = await DeviceOrientationEvent.requestPermission();
+            if (perm !== 'granted') {
+                alert('Permiso de giroscopio denegado. La orientación VR no estará disponible.');
+            }
+        } catch(e) {
+            console.warn('[PERM] Error solicitando giroscopio:', e);
+        }
+    }
+
+    // 2. Ocultar splash
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('reticle').style.display = 'block';
+
+    // 3. Init Three.js
+    initThree();
+
+    // 4. Precarga de logos (no bloqueante)
+    preloadLogos();
+
+    // 5. Precarga de datos JSON (muestra loader)
+    setLoader(true, 'Inicializando…', 0);
+    await preloadAllOrgs();
+    setLoader(false);
+
+    // 6. Render inicial de paneles
+    await renderPanels();
+
+    // 7. Activar modo VR
+    APP.isVR = true;
+    document.getElementById('dbg-vr').textContent = 'ON (estéreo + giroscopio)';
+
+    // 8. Arrancar loop
+    animate();
+
+    console.log('[INIT] ✅ Experiencia VR iniciada');
+    console.log('[INIT] Organizaciones:', ORG_KEYS.join(', '));
+    console.log('[INIT] Para diagnóstico de mando: observa los logs [GP] y [BTN]');
+    showToast('🌍 VR listo — conecta el mando PS4');
+});
+</script>
 </body>
 </html>
