@@ -48,10 +48,8 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        // ==================== RUTAS RELATIVAS DIRECTAS DE TU REPOSITORIO ====================
-        const DATA_FOLDER_URL = "datos/"; 
-        const TEXTURES_FOLDER_URL = "texturas/";
-        const LOGOS_FOLDER_URL = "logotipos/";
+        // ==================== CONFIGURACIÓN DE RUTAS LOCALES ====================
+        const DATA_FOLDER_URL = "./data/"; 
         
         const orgKeys = [
             "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
@@ -103,34 +101,31 @@
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
+        
+        // === NUEVO CONTENEDOR: Para almacenar las texturas cargadas del planeta ===
         const loadedTextures = {}; 
         let defaultEarthTexture;
 
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
 
-        // ==================== CARGA DE ARCHIVOS JSON ====================
+        // ==================== CARGA DINÁMICA ASÍNCRONA ====================
         async function loadAllOrganizationData() {
             const fetchPromises = orgKeys.map(async (key) => {
                 try {
                     const response = await fetch(`${DATA_FOLDER_URL}${key}.json`);
-                    if (!response.ok) throw new Error();
+                    if (!response.ok) throw new Error(`No se pudo leer localmente: ${key}.json`);
                     const json = await response.json();
                     
                     orgData[key] = {
                         anio: json.anio || json.año || 2026,
-                        imagen: json.imagen || `${LOGOS_FOLDER_URL}${key}.jpg`, 
+                        imagen: json.imagen || `logos/${key}.jpg`,
                         info: Array.isArray(json.info) ? json.info : [json.info],
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
-                    // Si el servidor bloquea el JSON localmente, se inyectan datos de respaldo para pintar la UI
-                    orgData[key] = { 
-                        anio: 2026, 
-                        imagen: `${LOGOS_FOLDER_URL}${key}.jpg`, 
-                        info: [`Información sobre ${key}. Revisa que los archivos JSON estén subidos de forma correcta en la carpeta /datos/.`], 
-                        paises: ["Ecuador", "Colombia", "Perú", "Argentina", "Chile", "México"] 
-                    };
+                    console.error(`Error procesando los datos de: ${key}`, error);
+                    orgData[key] = { anio: 2026, imagen: `logos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
                 }
             });
 
@@ -152,32 +147,21 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-            hemiLight.position.set(0, 20, 0);
-            scene.add(hemiLight);
-
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Carga del mapa base (Confirmado que es PNG en tu captura)
+            // Planeta Tierra Inicial (Carga la por defecto por seguridad)
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`); 
-            
-            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ 
-                map: defaultEarthTexture, 
-                shininess: 20 
-            }));
+            defaultEarthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
+            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: defaultEarthTexture, shininess: 15 }));
             scene.add(earth);
 
-            // Capa de nubes (Confirmado que es .jpg en tu captura)
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTex = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_clouds.jpg`); 
+            const cloudsTex = textureLoader.load('textures/8k_earth_clouds.jpg');
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
-                alphaMap: cloudsTex, 
-                transparent: true, 
-                color: 0xffffff, 
-                depthWrite: false 
+                alphaMap: cloudsTex, transparent: true, color: 0xffffff, depthWrite: false 
             }));
             scene.add(clouds);
 
@@ -199,20 +183,10 @@
             animate();
         }
 
-        // Carga del fondo espacial (Confirmado que es .jpg en tu captura)
         function createSpaceBackground() {
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
-            textureLoader.load(`${TEXTURES_FOLDER_URL}8k_stars_milky_way.jpg`, 
-                (tex) => {
-                    const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide }));
-                    scene.add(bgMesh);
-                }, 
-                undefined, 
-                () => {
-                    const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: 0x050814, side: THREE.BackSide }));
-                    scene.add(bgMesh);
-                }
-            );
+            const bgTex = textureLoader.load('textures/8k_stars_milky_way.jpg');
+            scene.add(new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: bgTex, side: THREE.BackSide })));
         }
 
         function setupTextCanvases() {
@@ -259,26 +233,29 @@
             scene.add(uiGroup);
         }
 
+        // ==================== PRECARGA DE IMÁGENES Y TEXTURAS DINÁMICAS ====================
         function preloadImagesAndRender() {
             let loaded = 0;
-            const totalAssets = orgKeys.length * 2;
-
             orgKeys.forEach(key => {
+                // 1. Precarga del logo para el Canvas
                 const img = new Image();
                 img.src = orgData[key].imagen;
                 img.onload = () => { checkAssetsLoaded(); };
                 img.onerror = () => { checkAssetsLoaded(); };
                 loadedImages[key] = img;
 
+                // 2. MODIFICACIÓN: Precarga de la textura personalizada del planeta (.jpg)
+                // Se busca directamente dentro de la carpeta textures con el nombre de la organización
                 textureLoader.load(
-                    `${TEXTURES_FOLDER_URL}${key}.png`,
+                    `textures/${key}.jpg`,
                     (tex) => {
                         loadedTextures[key] = tex;
                         checkAssetsLoaded();
                     },
                     undefined,
-                    () => {
-                        loadedTextures[key] = defaultEarthTexture; 
+                    (err) => {
+                        console.warn(`No se encontró textura para ${key}, se usará la por defecto.`);
+                        loadedTextures[key] = defaultEarthTexture; // Respaldo si no existe el archivo
                         checkAssetsLoaded();
                     }
                 );
@@ -286,7 +263,8 @@
 
             function checkAssetsLoaded() {
                 loaded++;
-                if (loaded === totalAssets) {
+                // Multiplicamos por 2 porque cargamos tanto la imagen del logo como la textura 3D por cada organización
+                if (loaded === orgKeys.length * 2) {
                     renderUIElements(orgKeys[currentSelectedIndex]);
                 }
             }
@@ -306,28 +284,30 @@
             ctx.fillText(line, x, y);
         }
 
+        // ==================== RENDERING CANVASES (UI) ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
 
-            if (earth) {
-                earth.material.map = loadedTextures[key] || defaultEarthTexture;
+            // === CAMBIO CRÍTICO: Actualizar textura de la Tierra según la organización actual ===
+            if (earth && loadedTextures[key]) {
+                earth.material.map = loadedTextures[key];
                 earth.material.needsUpdate = true;
             }
 
-            // --- INTERFAZ SUPERIOR ---
+            // --- INTERFAZ SOBRE EL PLANETA ---
             siglasCtx.clearRect(0, 0, 1500, 300);
-            siglasCtx.fillStyle = "rgba(10, 16, 36, 0.88)";
+            siglasCtx.fillStyle = "rgba(10, 16, 36, 0.85)";
             siglasCtx.beginPath(); siglasCtx.roundRect(0, 0, 1500, 300, 40); siglasCtx.fill();
             siglasCtx.strokeStyle = "rgba(0, 162, 255, 0.8)"; siglasCtx.lineWidth = 8; siglasCtx.stroke();
             
-            siglasCtx.fillStyle = "#ffffff"; siglasCtx.font = "bold 54px 'Segoe UI'";
+            siglasCtx.fillStyle = "#ffffff"; siglasCtx.font = "bold 58px 'Segoe UI'";
             siglasCtx.textAlign = "center";
             const significado = diccionarioSiglas[key] || key;
             wrapText(siglasCtx, significado, 750, 110, 1350, 80);
             siglasTexture.needsUpdate = true;
 
-            // --- PANEL IZQUIERDO ---
+            // --- PANEL IZQUIERDO: PAÍSES ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -351,7 +331,7 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO ---
+            // --- PANEL DERECHO: INFORMACIÓN ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
@@ -367,7 +347,7 @@
             rightCtx.strokeStyle = "#00a2ff"; rightCtx.lineWidth = 16;
             rightCtx.strokeRect(logoX - 15, logoY - 15, logoSize + 30, logoSize + 30);
 
-            if (loadedImages[key] && loadedImages[key].complete && loadedImages[key].naturalWidth !== 0) {
+            if (loadedImages[key]) {
                 rightCtx.drawImage(loadedImages[key], logoX, logoY, logoSize, logoSize);
             }
 
@@ -390,7 +370,7 @@
             rightCtx.fillText(`Info ${currentInfoPage + 1} de ${totalInfoPages}`, 1948, 1950);
             rightTexture.needsUpdate = true;
 
-            // --- PANEL INFERIOR ---
+            // --- PANEL INFERIOR: SELECTOR ---
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -402,7 +382,7 @@
             selectorTexture.needsUpdate = true;
         }
 
-        // ==================== CONTROLES ====================
+        // ==================== INTERACCIONES Y SISTEMA DE PÁGINAS ====================
         function scrollPaises(dir) {
             const total = Math.ceil(orgData[orgKeys[currentSelectedIndex]].paises.length / paisesPorPagina) || 1;
             currentPaisPage = (currentPaisPage + dir + total) % total;
@@ -427,10 +407,18 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
+            // Joystick Izquierdo: Rotación de la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
-            if (Math.abs(sx) > 0.15) { earth.rotation.y += sx * 0.03; clouds.rotation.y += sx * 0.03; }
-            if (Math.abs(sy) > 0.15) { earth.rotation.x += sy * 0.03; clouds.rotation.x += sy * 0.03; }
+            if (Math.abs(sx) > 0.15) {
+                earth.rotation.y += sx * 0.03;
+                clouds.rotation.y += sx * 0.03;
+            }
+            if (Math.abs(sy) > 0.15) {
+                earth.rotation.x += sy * 0.03;
+                clouds.rotation.x += sy * 0.03;
+            }
 
+            // Zoom Dinámico con Joystick Derecho (Hacia donde apunta el visor)
             const zoomAxis = gp.axes[3]; 
             if (Math.abs(zoomAxis) > 0.15) {
                 const direction = new THREE.Vector3();
@@ -438,22 +426,28 @@
                 camera.position.addScaledVector(direction, -zoomAxis * 0.12);
 
                 const distanciaAlCentro = camera.position.length();
-                if (distanciaAlCentro < MIN_ZOOM_DIST) camera.position.setLength(MIN_ZOOM_DIST);
-                else if (distanciaAlCentro > MAX_ZOOM_DIST) camera.position.setLength(MAX_ZOOM_DIST);
+                if (distanciaAlCentro < MIN_ZOOM_DIST) {
+                    camera.position.setLength(MIN_ZOOM_DIST);
+                } else if (distanciaAlCentro > MAX_ZOOM_DIST) {
+                    camera.position.setLength(MAX_ZOOM_DIST);
+                }
             }
 
+            // D-Pad Arriba/Abajo -> Páginas de PAÍSES
             if (gp.buttons[12]?.pressed && !buttonPressedState.dpadUp) { buttonPressedState.dpadUp = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) buttonPressedState.dpadUp = false;
 
             if (gp.buttons[13]?.pressed && !buttonPressedState.dpadDown) { buttonPressedState.dpadDown = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) buttonPressedState.dpadDown = false;
 
+            // D-Pad Izquierda/Derecha -> Páginas de INFORMACIÓN
             if (gp.buttons[14]?.pressed && !buttonPressedState.dpadLeft) { buttonPressedState.dpadLeft = true; scrollInfo(-1); }
             else if (!gp.buttons[14]?.pressed) buttonPressedState.dpadLeft = false;
 
             if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) { buttonPressedState.dpadRight = true; scrollInfo(1); }
             else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
 
+            // Cuadrado / Círculo -> Cambia de Organización
             if (gp.buttons[2]?.pressed && !buttonPressedState.square) { buttonPressedState.square = true; navegarOrganizaciones(-1); }
             else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
 
