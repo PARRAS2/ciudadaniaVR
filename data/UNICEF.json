@@ -1,12 +1,23 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "UNICEF",
+  "anio": 1946,
   "imagen": "logos/UNICEF.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "El Fondo de las Naciones Unidas para la Infancia (UNICEF) fue creado el 11 de diciembre de 1946 para ayudar a los niños afectados por la Segunda Guerra Mundial. Inicialmente se llamó Fondo Internacional de Emergencia de las Naciones Unidas para la Infancia.",
+    "Defiende y protege los derechos de los niños en todo el mundo. Proporciona atención médica, nutrición, agua potable, saneamiento, educación y protección en situaciones de emergencia, conflictos armados y desastres naturales.",
+    "Trabaja en más de 190 países y territorios. Es conocida por sus campañas de vacunación, apoyo a la educación infantil y protección contra la violencia, explotación y abuso infantil."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaiyán", "Bangladesh",
+    "Bélgica", "Bolivia", "Brasil", "Bulgaria", "Burkina Faso", "Burundi", "Camerún", "Canadá", "Chad", "Chile",
+    "China", "Colombia", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador", "Egipto",
+    "El Salvador", "España", "Estados Unidos", "Etiopía", "Filipinas", "Finlandia", "Francia", "Gabón", "Gambia", "Georgia",
+    "Ghana", "Grecia", "Guatemala", "Guinea", "Haití", "Honduras", "Hungría", "India", "Indonesia", "Irán",
+    "Irlanda", "Islandia", "Israel", "Italia", "Japón", "Jordania", "Kenya", "Líbano", "Liberia", "Libia",
+    "Madagascar", "Malawi", "Malí", "Marruecos", "México", "Mozambique", "Myanmar", "Nepal", "Níger", "Nigeria",
+    "Noruega", "Nueva Zelanda", "Países Bajos", "Pakistán", "Panamá", "Paraguay", "Perú", "Polonia", "Portugal", "Reino Unido",
+    "República Dominicana", "Rumania", "Rusia", "Ruanda", "Senegal", "Sierra Leona", "Siria", "Somalia", "Sudáfrica", "Sudán",
+    "Sudán del Sur", "Suecia", "Suiza", "Tanzania", "Tailandia", "Túnez", "Turquía", "Ucrania", "Uganda", "Uruguay",
+    "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
