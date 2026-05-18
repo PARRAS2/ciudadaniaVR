@@ -473,27 +473,27 @@
 
         init();
 
+        // Solución nativa: Ejecutar pantalla completa primero y desfasar la carga de VR
         document.getElementById('permission-btn').addEventListener('click', () => {
-            // Activar pantalla completa nativa del navegador
             const docElm = document.documentElement;
-            if (docElm.requestFullscreen) {
-                docElm.requestFullscreen();
-            } else if (docElm.mozRequestFullScreen) { /* Firefox */
-                docElm.mozRequestFullScreen();
-            } else if (docElm.webkitRequestFullscreen) { /* Chrome, Safari y Opera */
-                docElm.webkitRequestFullscreen();
-            } else if (docElm.msRequestFullscreen) { /* IE/Edge */
-                docElm.msRequestFullscreen();
-            }
-
-            document.getElementById('permission-btn').style.display = 'none';
-            isVR = true;
-            document.getElementById('reticle-pc').style.display = 'none';
-            document.getElementById('reticle-left').style.display = 'block';
-            document.getElementById('reticle-right').style.display = 'block';
             
-            // Forzar reajuste de pantalla completa instantáneo
-            setTimeout(onWindowResize, 300);
+            // 1. Forzar Pantalla Completa Inmediata (Interacción directa requerida por el navegador)
+            if (docElm.requestFullscreen) { docElm.requestFullscreen(); }
+            else if (docElm.mozRequestFullScreen) { docElm.mozRequestFullScreen(); }
+            else if (docElm.webkitRequestFullscreen) { docElm.webkitRequestFullscreen(); }
+            else if (docElm.msRequestFullscreen) { docElm.msRequestFullscreen(); }
+
+            // 2. Desfasar la inicialización de los sensores VR un instante para no saturar el hilo de permisos
+            setTimeout(() => {
+                document.getElementById('permission-btn').style.display = 'none';
+                isVR = true;
+                document.getElementById('reticle-pc').style.display = 'none';
+                document.getElementById('reticle-left').style.display = 'block';
+                document.getElementById('reticle-right').style.display = 'block';
+                
+                // Forzar reajuste de canvas a las nuevas dimensiones de pantalla completa
+                onWindowResize();
+            }, 150);
         });
     </script>
 </body>
