@@ -48,7 +48,7 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        // ==================== CONFIGURACIÓN DE RUTAS LOCALES ====================
+        // ==================== CONFIGURACIÓN DE RUTAS DEL REPOSITORIO ====================
         const DATA_FOLDER_URL = "./data/"; 
         
         const orgKeys = [
@@ -100,8 +100,8 @@
 
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
-        const loadedImages = {};     // Almacena los logos como objetos Image de HTML para el Canvas
-        const earthTextures = {};    // Almacena las texturas 3D de Three.js para la esfera de la Tierra
+        const loadedImages = {};     // Logos en formato Image para el Canvas de información
+        const earthTextures = {};    // Texturas 3D para la esfera de la Tierra
 
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
@@ -116,14 +116,13 @@
                     
                     orgData[key] = {
                         anio: json.anio || json.año || 2026,
-                        // Cambiado a .png según tu estructura de archivos
-                        imagen: json.imagen || `texturas/${key}.png`,
+                        imagen: json.imagen || `textures/${key}.png`, // Corregido a textures/
                         info: Array.isArray(json.info) ? json.info : [json.info],
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
                     console.error(`Error procesando los datos de: ${key}`, error);
-                    orgData[key] = { anio: 2026, imagen: `texturas/${key}.png`, info: ["Error al cargar información."], paises: [] };
+                    orgData[key] = { anio: 2026, imagen: `textures/${key}.png`, info: ["Error al cargar información."], paises: [] };
                 }
             });
 
@@ -150,14 +149,15 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra Inicializado con textura por defecto (8k_earth_daymap.png)
+            // Planeta Tierra inicial (Corregido a textures/)
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            const defaultEarthTexture = textureLoader.load('texturas/8k_earth_daymap.png');
+            const defaultEarthTexture = textureLoader.load('textures/8k_earth_daymap.png');
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: defaultEarthTexture, shininess: 15 }));
             scene.add(earth);
 
+            // Capa de nubes (Corregido a textures/)
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTex = textureLoader.load('texturas/8k_earth_clouds.jpg');
+            const cloudsTex = textureLoader.load('textures/8k_earth_clouds.jpg');
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
                 alphaMap: cloudsTex, transparent: true, color: 0xffffff, depthWrite: false 
             }));
@@ -183,7 +183,7 @@
 
         function createSpaceBackground() {
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
-            const bgTex = textureLoader.load('texturas/8k_stars_milky_way.jpg');
+            const bgTex = textureLoader.load('textures/8k_stars_milky_way.jpg'); // Corregido a textures/
             scene.add(new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: bgTex, side: THREE.BackSide })));
         }
 
@@ -237,7 +237,7 @@
             const total = orgKeys.length;
 
             orgKeys.forEach(key => {
-                // 1. Pre-cargar logos en formato HTML Image para el panel de información de la derecha
+                // 1. Cargar logos para paneles HTML Canvas
                 const img = new Image();
                 img.src = orgData[key].imagen;
                 img.onload = () => { 
@@ -248,9 +248,9 @@
                     checkLoadProgress(); 
                 };
 
-                // 2. MODIFICACIÓN: Pre-cargar las imágenes como texturas nativas de Three.js para mapear en la Tierra
+                // 2. Cargar texturas dinámicas para la superficie esférica (Corregido a textures/)
                 textureLoader.load(
-                    `texturas/${key}.png`,
+                    `textures/${key}.png`,
                     (texture) => {
                         earthTextures[key] = texture;
                     },
@@ -288,14 +288,12 @@
             const data = orgData[key];
             if (!data) return;
 
-            // === MODIFICACIÓN: Cambiar la textura plasmada en la esfera de la Tierra ===
+            // === CAMBIO DINÁMICO DE TEXTURA EN LA TIERRA (Corregido a textures/) ===
             if (earth && earth.material) {
                 if (earthTextures[key]) {
-                    // Si existe el archivo de la organización en la carpeta texturas, se aplica
                     earth.material.map = earthTextures[key];
                 } else {
-                    // Si falta alguno, vuelve a la textura global por defecto para que no quede negro
-                    earth.material.map = textureLoader.load('texturas/8k_earth_daymap.png');
+                    earth.material.map = textureLoader.load('textures/8k_earth_daymap.png');
                 }
                 earth.material.needsUpdate = true;
             }
