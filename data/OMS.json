@@ -1,12 +1,27 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "OMS",
+  "anio": 1948,
   "imagen": "logos/OMS.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "La Organización Mundial de la Salud (OMS) fue fundada el 7 de abril de 1948 en Ginebra, Suiza. Es la autoridad internacional en salud pública dentro del sistema de Naciones Unidas.",
+    "Su misión es lograr que todas las personas alcancen el nivel más alto posible de salud. Coordina respuestas globales a emergencias sanitarias, establece normas y estándares internacionales de salud, y lidera la lucha contra enfermedades como el cáncer, el VIH, la tuberculosis y la malaria.",
+    "Ganó gran relevancia durante la pandemia de COVID-19, donde coordinó la respuesta mundial, distribuyó vacunas y estableció protocolos sanitarios internacionales. Trabaja en 194 países miembros."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Antigua y Barbuda", "Arabia Saudita", "Argentina", "Armenia", "Australia", "Austria",
+    "Azerbaiyán", "Bahamas", "Bangladesh", "Barbados", "Bélgica", "Belice", "Benín", "Bolivia", "Bosnia y Herzegovina", "Botswana",
+    "Brasil", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Camboya", "Camerún", "Canadá", "Chad", "Chile",
+    "China", "Colombia", "Comoras", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador",
+    "Egipto", "El Salvador", "Emiratos Árabes Unidos", "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia", "Francia",
+    "Gabón", "Gambia", "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Guyana", "Haití", "Honduras",
+    "Hungría", "India", "Indonesia", "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Jamaica", "Japón",
+    "Jordania", "Kazajistán", "Kenya", "Kirguistán", "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano", "Liberia",
+    "Libia", "Lituania", "Luxemburgo", "Macedonia del Norte", "Madagascar", "Malasia", "Malawi", "Malí", "Malta", "Marruecos",
+    "Mauricio", "Mauritania", "México", "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar", "Namibia", "Nepal",
+    "Nicaragua", "Níger", "Nigeria", "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán", "Panamá", "Papúa Nueva Guinea",
+    "Paraguay", "Perú", "Polonia", "Portugal", "Qatar", "Reino Unido", "República Checa", "República Dominicana", "Rumania", "Rusia",
+    "Ruanda", "Senegal", "Serbia", "Sierra Leona", "Singapur", "Siria", "Somalia", "Sri Lanka", "Sudáfrica", "Sudán",
+    "Sudán del Sur", "Suecia", "Suiza", "Surinam", "Tailandia", "Tanzania", "Togo", "Trinidad y Tobago", "Túnez", "Turquía",
+    "Ucrania", "Uganda", "Uruguay", "Uzbekistán", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
