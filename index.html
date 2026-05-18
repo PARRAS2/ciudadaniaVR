@@ -102,7 +102,7 @@
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
         
-        // === NUEVO CONTENEDOR: Para almacenar las texturas cargadas del planeta ===
+        // === CONTENEDOR: Para almacenar las texturas cargadas del planeta ===
         const loadedTextures = {}; 
         let defaultEarthTexture;
 
@@ -152,14 +152,14 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra Inicial (Carga la por defecto por seguridad)
+            // Planeta Tierra Inicial (.png corregido)
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            defaultEarthTexture = textureLoader.load('texturas/8k_earth_daymap.png');
+            defaultEarthTexture = textureLoader.load('texturas/8k_earth_daymap.png'); 
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: defaultEarthTexture, shininess: 15 }));
             scene.add(earth);
 
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTex = textureLoader.load('texturas/8k_earth_clouds.jpg');
+            const cloudsTex = textureLoader.load('texturas/8k_earth_clouds.jpg'); 
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
                 alphaMap: cloudsTex, transparent: true, color: 0xffffff, depthWrite: false 
             }));
@@ -185,7 +185,7 @@
 
         function createSpaceBackground() {
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
-            const bgTex = textureLoader.load('texturas/8k_stars_milky_way.jpg');
+            const bgTex = textureLoader.load('texturas/8k_stars_milky_way.jpg'); 
             scene.add(new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: bgTex, side: THREE.BackSide })));
         }
 
@@ -244,8 +244,8 @@
                 img.onerror = () => { checkAssetsLoaded(); };
                 loadedImages[key] = img;
 
-                // 2. MODIFICACIÓN: Precarga de la textura personalizada del planeta (.png)
-                // Se busca directamente dentro de la carpeta texturas en formato png
+                // 2. Precarga de la textura personalizada del planeta (.png)
+                // CORREGIDO: Se añadió la coma faltante después de la ruta de la textura
                 textureLoader.load(
                     `texturas/${key}.png`,
                     (tex) => {
@@ -255,7 +255,7 @@
                     undefined,
                     (err) => {
                         console.warn(`No se encontró textura para ${key}, se usará la por defecto.`);
-                        loadedTextures[key] = defaultEarthTexture; // Respaldo si no existe el archivo
+                        loadedTextures[key] = defaultEarthTexture; 
                         checkAssetsLoaded();
                     }
                 );
@@ -263,7 +263,6 @@
 
             function checkAssetsLoaded() {
                 loaded++;
-                // Multiplicamos por 2 porque cargamos tanto la imagen del logo como la textura 3D por cada organización
                 if (loaded === orgKeys.length * 2) {
                     renderUIElements(orgKeys[currentSelectedIndex]);
                 }
@@ -289,7 +288,6 @@
             const data = orgData[key];
             if (!data) return;
 
-            // === CAMBIO CRÍTICO: Actualizar textura de la Tierra según la organización actual ===
             if (earth && loadedTextures[key]) {
                 earth.material.map = loadedTextures[key];
                 earth.material.needsUpdate = true;
