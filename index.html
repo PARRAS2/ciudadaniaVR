@@ -57,19 +57,39 @@
             "ONU", "OPAQ", "PMA", "PNUMA", "UIT", "UNESCO", "UNICEF"
         ];
 
+        // Diccionario para mostrar el significado de las siglas sobre el planeta
+        const diccionarioSiglas = {
+            "ACNUR": "Alto Comisionado de las Naciones Unidas para los Refugiados",
+            "Banco Mundial": "Grupo del Banco Mundial (Financiamiento Global)",
+            "Cruz Roja": "Comité Internacional de la Cruz Roja",
+            "FAO": "Organización de las Naciones Unidas para la Alimentación y la Agricultura",
+            "FMI": "Fondo Monetario Internacional",
+            "INTERPOL": "Organización Internacional de Policía Criminal",
+            "OIEA": "Organismo Internacional de Energía Atómica",
+            "OIT": "Organización Internacional del Trabajo",
+            "OMC": "Organización Mundial del Comercio",
+            "OMI": "Organización Marítima Internacional",
+            "OMS": "Organización Mundial de la Salud",
+            "ONU": "Organización de las Naciones Unidas",
+            "OPAQ": "Organización para la Prohibición de las Armas Químicas",
+            "PMA": "Programa Mundial de Alimentos",
+            "PNUMA": "Programa de las Naciones Unidas para el Medio Ambiente",
+            "UIT": "Unión Internacional de Telecomunicaciones",
+            "UNESCO": "Organización de las Naciones Unidas para la Educación, la Ciencia y la Cultura",
+            "UNICEF": "Fondo de las Naciones Unidas para la Infancia"
+        };
+
         let orgData = {}; 
         let currentSelectedIndex = 0;
         let currentPaisPage = 0;
         let currentInfoPage = 0;
-        
-        // Mantenemos una cantidad controlada por página para que con la fuente grande se lea increíble
-        const paisesPorPagina = 9; 
+        const paisesPorPagina = 10; 
 
         let scene, camera, renderer, effect, vrControls, mouseControls;
         let earth, clouds, uiGroup;
-        let leftPanelMesh, rightPanelMesh, selectorPanelMesh;
-        let leftCanvas, leftCtx, rightCanvas, rightCtx, selectorCanvas, selectorCtx;
-        let leftTexture, rightTexture, selectorTexture;
+        let leftPanelMesh, rightPanelMesh, selectorPanelMesh, siglasMesh;
+        let leftCanvas, leftCtx, rightCanvas, rightCtx, selectorCanvas, selectorCtx, siglasCanvas, siglasCtx;
+        let leftTexture, rightTexture, selectorTexture, siglasTexture;
         let isVR = false;
         let activeGamepad = null;
 
@@ -178,31 +198,38 @@
             selectorCanvas = document.createElement('canvas'); selectorCanvas.width = 1024; selectorCanvas.height = 240;
             selectorCtx = selectorCanvas.getContext('2d');
             selectorTexture = new THREE.CanvasTexture(selectorCanvas);
+
+            // Canvas nuevo para las siglas flotantes sobre el planeta
+            siglasCanvas = document.createElement('canvas'); siglasCanvas.width = 1500; siglasCanvas.height = 300;
+            siglasCtx = siglasCanvas.getContext('2d');
+            siglasTexture = new THREE.CanvasTexture(siglasCanvas);
         }
 
         function createSpatialUI() {
             uiGroup = new THREE.Group();
             
-            // === MODIFICACIÓN CRÍTICA: Aumentamos la altura de los paneles de 3.6 a 4.8 en el espacio 3D ===
-            const panelW = 3.6;
-            const panelH = 4.8; 
-            const panelGeo = new THREE.PlaneGeometry(panelW, panelH);
+            // Paneles laterales devueltos a un tamaño estilizado equilibrado
+            const panelGeo = new THREE.PlaneGeometry(3.6, 4.2);
 
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
-            leftPanelMesh.position.set(-4.0, 0.2, -0.8);
-            leftPanelMesh.rotation.y = 0.46;
+            leftPanelMesh.position.set(-3.9, 0.2, -0.8);
+            leftPanelMesh.rotation.y = 0.44;
             uiGroup.add(leftPanelMesh);
 
             rightPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: rightTexture, transparent: true, side: THREE.DoubleSide }));
-            rightPanelMesh.position.set(4.0, 0.2, -0.8);
-            rightPanelMesh.rotation.y = -0.46;
+            rightPanelMesh.position.set(3.9, 0.2, -0.8);
+            rightPanelMesh.rotation.y = -0.44;
             uiGroup.add(rightPanelMesh);
 
             selectorPanelMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), new THREE.MeshBasicMaterial({ map: selectorTexture, transparent: true, side: THREE.DoubleSide }));
-            // Bajamos un poco el selector para que no choque con las tarjetas ahora que son más largas hacia abajo
-            selectorPanelMesh.position.set(0, -2.5, -0.2); 
+            selectorPanelMesh.position.set(0, -2.4, -0.2); 
             selectorPanelMesh.rotation.x = -0.3;
             uiGroup.add(selectorPanelMesh);
+
+            // === NUEVO PANEL 3D: Texto flotante sobre el planeta ===
+            siglasMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.76), new THREE.MeshBasicMaterial({ map: siglasTexture, transparent: true, side: THREE.DoubleSide }));
+            siglasMesh.position.set(0, 1.8, -0.4); // Justo encima de la Tierra
+            uiGroup.add(siglasMesh);
 
             scene.add(uiGroup);
         }
@@ -212,15 +239,8 @@
             orgKeys.forEach(key => {
                 const img = new Image();
                 img.src = orgData[key].imagen;
-                img.onload = () => {
-                    loadedImages[key] = img;
-                    loaded++;
-                    if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]);
-                };
-                img.onerror = () => {
-                    loaded++; 
-                    if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]);
-                };
+                img.onload = () => { loadedImages[key] = img; loaded++; if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]); };
+                img.onerror = () => { loaded++; if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]); };
             });
         }
 
@@ -238,10 +258,27 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERING CANVASES (UI TOTALMENTE AJUSTADA) ====================
+        // ==================== RENDERING CANVASES (UI ACTUALIZADA) ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
+
+            // --- INTERFAZ SOBRE EL PLANETA: SIGNIFICADO DE LAS SIGLAS ---
+            siglasCtx.clearRect(0, 0, 1500, 300);
+            // Fondo semi-transparente curvo/estético para el letrero superior
+            siglasCtx.fillStyle = "rgba(10, 16, 36, 0.85)";
+            siglasCtx.beginPath();
+            siglasCtx.roundRect(0, 0, 1500, 300, 40);
+            siglasCtx.fill();
+            siglasCtx.strokeStyle = "rgba(0, 162, 255, 0.8)"; siglasCtx.lineWidth = 8;
+            siglasCtx.stroke();
+            
+            // Texto del significado centrado
+            siglasCtx.fillStyle = "#ffffff"; siglasCtx.font = "bold 58px 'Segoe UI'";
+            siglasCtx.textAlign = "center";
+            const significado = diccionarioSiglas[key] || key;
+            wrapText(siglasCtx, significado, 750, 110, 1350, 80);
+            siglasTexture.needsUpdate = true;
 
             // --- PANEL IZQUIERDO: PAÍSES ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
@@ -251,14 +288,15 @@
             leftCtx.strokeRect(0, 0, canvasW, canvasH);
             
             leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 140px 'Segoe UI'";
+            leftCtx.textAlign = "left";
             leftCtx.fillText("PAÍSES MIEMBROS", 100, 200);
 
             const startPais = currentPaisPage * paisesPorPagina;
-            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 115px 'Segoe UI'"; 
-            let yPais = 440;
+            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 110px 'Segoe UI'"; 
+            let yPais = 430;
             data.paises.slice(startPais, startPais + paisesPorPagina).forEach(p => {
                 leftCtx.fillText(`• ${p}`, 120, yPais);
-                yPais += 165; 
+                yPais += 155; 
             });
             
             const totalPaisPages = Math.ceil(data.paises.length / paisesPorPagina) || 1;
@@ -266,16 +304,16 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO: INFORMACIÓN (ACOPLE PERFECTO CON EL NUEVO PLANO LARGO) ---
+            // --- PANEL DERECHO: INFORMACIÓN (FUENTE REDUCIDA Y OPTIMIZADA) ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             
-            // Render del cuerpo del panel
+            // Fondo de la tarjeta desplazado hacia abajo para dar espacio a la pestaña del logo
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26;
             rightCtx.strokeRect(0, 300, canvasW, canvasH - 300);
 
-            // LOGO: Grandioso y sobresaliendo elegantemente por la parte superior
+            // LOGO: Tarjeta sobresaliente superior aumentada
             const logoSize = 500;
             const logoX = (canvasW - logoSize) / 2;
             const logoY = 50; 
@@ -289,24 +327,23 @@
                 rightCtx.drawImage(loadedImages[key], logoX, logoY, logoSize, logoSize);
             }
 
-            // Nombre de la organización centrado debajo de la pestaña flotante del logo
+            // Título de la Organización
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 155px 'Segoe UI'";
             rightCtx.textAlign = "center";
             rightCtx.fillText(key.toUpperCase(), 1024, 690);
 
-            // Línea de división de títulos
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 760); rightCtx.lineTo(1948, 760); rightCtx.stroke();
 
-            // TEXTO PRINCIPAL: Se renderiza con un interlineado excelente (165) sin preocuparse por desbordamientos
-            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "115px 'Segoe UI'"; 
+            // === AJUSTE SOLICITADO: Texto de información reducido para legibilidad óptima ===
+            rightCtx.fillStyle = "#ffffff"; 
+            rightCtx.font = "80px 'Segoe UI'"; // Reducido de 115px a 80px para dar espacio y evitar desbordamientos
             rightCtx.textAlign = "left";
             
             const textoPaginaActual = data.info[currentInfoPage] || "";
-            // El texto inicia fluidamente en Y=930. Al ser el plano 3D más largo, se acopla completo en la pantalla virtual
-            wrapText(rightCtx, textoPaginaActual, 100, 930, 1840, 165); 
+            // Interlineado ajustado proporcionalmente a 110px
+            wrapText(rightCtx, textoPaginaActual, 110, 890, 1820, 110); 
 
-            // Indicador numérico de página de información
             const totalInfoPages = data.info.length || 1;
             rightCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; rightCtx.font = "70px 'Segoe UI'";
             rightCtx.textAlign = "right";
