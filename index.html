@@ -149,9 +149,9 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra
+            // Planeta Tierra - Cambiado a 8k_earth_daymap.png
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
+            const earthTexture = textureLoader.load('textures/8k_earth_daymap.png');
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 }));
             scene.add(earth);
 
@@ -289,7 +289,7 @@
             
             leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 140px 'Segoe UI'";
             leftCtx.textAlign = "left";
-            leftCtx.fillText("PAÍSES MIEMBROS", 100, 200);
+            leftCtx.fillText("PAÍSES MIEMBLES", 100, 200);
 
             const startPais = currentPaisPage * paisesPorPagina;
             leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 110px 'Segoe UI'"; 
