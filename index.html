@@ -480,14 +480,30 @@
             effect.setSize(window.innerWidth, window.innerHeight);
         }
 
-        init();
+init();
 
+        // ==================== CONTROL DE PANTALLA COMPLETA Y VR ====================
         document.getElementById('permission-btn').addEventListener('click', () => {
+            // Ocultar botón de inicio
             document.getElementById('permission-btn').style.display = 'none';
             isVR = true;
+            
+            // Alternar retículas visuales
             document.getElementById('reticle-pc').style.display = 'none';
             document.getElementById('reticle-left').style.display = 'block';
             document.getElementById('reticle-right').style.display = 'block';
+
+            // Activar Pantalla Completa (Fullscreen API)
+            const docElm = document.documentElement;
+            if (docElm.requestFullscreen) {
+                docElm.requestFullscreen();
+            } else if (docElm.mozRequestFullScreen) { /* Firefox */
+                docElm.mozRequestFullScreen();
+            } else if (docElm.webkitRequestFullscreen) { /* Chrome, Safari y Opera */
+                docElm.webkitRequestFullscreen();
+            } else if (docElm.msRequestFullscreen) { /* IE/Edge */
+                docElm.msRequestFullscreen();
+            }
         });
     </script>
 </body>
