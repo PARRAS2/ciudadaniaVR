@@ -48,29 +48,17 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        // ==================== DATOS DE ORGANIZACIONES ====================
-        const orgData = { /* ... Tu objeto orgData completo ... */ 
-            "ACNUR": { anio: 1950, imagen: "logos/ACNUR.jpg",
-                info: ["Misión: Proteger refugiados, desplazados y apátridas.","Brinda ayuda humanitaria: refugio, salud, agua y educación.","Opera en más de 130 países y ha asistido a más de 100 millones de personas."],
-                paises: ["Afganistán","Albania","Alemania","Angola","Argelia","Argentina","Australia","Austria","Bangladesh","Bélgica","Brasil","Canadá","Chile","China","Colombia","Ecuador","España","Estados Unidos","Etiopía","Francia","India","Italia","Japón","Jordania","Kenya","México","Perú","Reino Unido","Rusia","Sudáfrica","Suiza","Turquía","Uganda","Yemen"]
-            },
-            // ... (Mantengo todos los demás igual que tenías)
-            "Banco Mundial": { anio: 1944, imagen: "logos/Banco Mundial.jpg",
-                info: ["Financia proyectos de desarrollo en países de ingresos bajos y medios.","Enfocado en reducción de pobreza, infraestructura y cambio climático.","Ha ayudado a sacar a cientos de millones de personas de la pobreza extrema."],
-                paises: ["Argentina","Bolivia","Brasil","Chile","Colombia","Ecuador","Estados Unidos","México","Perú","Uruguay","Venezuela","Reino Unido","Francia","Alemania","Japón","China","India","Indonesia","Nigeria","Sudáfrica","Etiopía","Kenya","Ghana","Bangladesh","Vietnam","Filipinas"]
-            },
-            "Cruz Roja": { anio: 1863, imagen: "logos/Cruz Roja.jpg",
-                info: ["Movimiento humanitario neutral presente en casi todos los países.","Asiste en conflictos armados y desastres naturales.","Promueve el Derecho Internacional Humanitario."],
-                paises: ["Suiza","Francia","Italia","España","Reino Unido","Alemania","Estados Unidos","Canadá","México","Colombia","Brasil","Argentina","Japón","China","Australia","Rusia","India","Turquía","Siria","Sudán","Nigeria","Sudáfrica","Pakistán","Irán"]
-            },
-            // ... Agrega aquí el resto de organizaciones como las tenías ...
-            "UIT": { anio: 1865, imagen: "logos/UIT.jpg",
-                info: ["Estándares de telecomunicaciones globales.","Gestión del espectro radioeléctrico.","Conectividad universal."],
-                paises: ["Suiza","Francia","Estados Unidos","Reino Unido","Alemania","España","Italia","Rusia","China","Japón","India","Brasil","México","Argentina","Canadá","Australia","Indonesia","Nigeria","Sudáfrica","Egipto"]
-            }
-        };
+        // ==================== CONFIGURACIÓN DE RUTAS LOCALES ====================
+        const DATA_FOLDER_URL = "./data/"; 
+        
+        // Listado de los archivos JSON que se leerán desde la carpeta data/
+        const orgKeys = [
+            "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
+            "INTERPOL", "OIEA", "OIT", "OMC", "OMI", "OMS", 
+            "ONU", "OPAQ", "PMA", "PNUMA", "UIT", "UNESCO", "UNICEF"
+        ];
 
-        const orgKeys = Object.keys(orgData);
+        let orgData = {}; 
         let currentSelectedIndex = 0;
         let currentPaisPage = 0;
         let currentInfoPage = 0;
@@ -84,31 +72,48 @@
         let isVR = false;
         let activeGamepad = null;
 
-        // Estados de botones (evita repetición rápida)
+        // Estados de botones para evitar repetición rápida por frames
         let buttonPressedState = {
-            square: false,
-            circle: false,
-            dpadUp: false,
-            dpadDown: false,
-            dpadLeft: false,
-            dpadRight: false
+            square: false, circle: false,
+            dpadUp: false, dpadDown: false,
+            dpadLeft: false, dpadRight: false
         };
-
-        const raycaster = new THREE.Raycaster();
-        const defaultCameraPos = new THREE.Vector3(0, 0, 5.6);
-        let cameraTargetPos = new THREE.Vector3(0, 0, 5.6);
-        let cameraTargetLookAt = new THREE.Vector3(0, 0, 0);
-        let currentCameraLookAt = new THREE.Vector3(0, 0, 0);
 
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
 
-        // ==================== FUNCIONES ====================
+        // ==================== CARGA DINÁMICA ASÍNCRONA ====================
+        async function loadAllOrganizationData() {
+            const fetchPromises = orgKeys.map(async (key) => {
+                try {
+                    const response = await fetch(`${DATA_FOLDER_URL}${key}.json`);
+                    if (!response.ok) throw new Error(`No se pudo leer localmente: ${key}.json`);
+                    const json = await response.json();
+                    
+                    // Asignación de datos unificada en memoria
+                    orgData[key] = {
+                        anio: json.anio || json.año || 2026,
+                        imagen: json.imagen || `logos/${key}.jpg`,
+                        info: Array.isArray(json.info) ? json.info : [json.info],
+                        paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
+                    };
+                } catch (error) {
+                    console.error(`Error procesando los datos de: ${key}`, error);
+                    // Respaldo para que la experiencia visual no se detenga
+                    orgData[key] = { anio: 2026, imagen: `logos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
+                }
+            });
+
+            await Promise.all(fetchPromises);
+            preloadImagesAndRender();
+        }
+
+        // ==================== INICIALIZACIÓN THREE.JS ====================
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.copy(defaultCameraPos);
+            camera.position.set(0, 0, 5.6);
             scene.add(camera);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -118,13 +123,13 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            // Luces
+            // Iluminación
             scene.add(new THREE.AmbientLight(0xffffff, 0.7));
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Tierra y Nubes
+            // Planeta Tierra y Atmósfera de Nubes
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
             const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 }));
@@ -141,6 +146,7 @@
             setupTextCanvases();
             createSpatialUI();
 
+            // Controles de Escritorio y VR Móvil
             mouseControls = new THREE.OrbitControls(camera, renderer.domElement);
             mouseControls.enableDamping = true;
             mouseControls.dampingFactor = 0.08;
@@ -151,7 +157,8 @@
             window.addEventListener("gamepaddisconnected", () => { activeGamepad = null; });
             window.addEventListener('resize', onWindowResize);
 
-            preloadImagesAndRender();
+            // Ejecutar carga desde la carpeta data/
+            loadAllOrganizationData();
             animate();
         }
 
@@ -177,8 +184,8 @@
 
         function createSpatialUI() {
             uiGroup = new THREE.Group();
-
             const panelGeo = new THREE.PlaneGeometry(3.6, 3.6);
+
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
             leftPanelMesh.position.set(-4.0, 0.2, -0.8);
             leftPanelMesh.rotation.y = 0.46;
@@ -207,10 +214,15 @@
                     loaded++;
                     if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]);
                 };
+                img.onerror = () => {
+                    loaded++; 
+                    if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]);
+                };
             });
         }
 
         function wrapText(ctx, text, x, y, maxW, lineH) {
+            if (!text) return;
             let words = text.split(' '), line = '';
             for (let w of words) {
                 let test = line + w + ' ';
@@ -223,11 +235,12 @@
             ctx.fillText(line, x, y);
         }
 
+        // ==================== RENDERING CANVASES (UI) ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
 
-            // Panel Izquierdo
+            // --- PANEL IZQUIERDO: PAÍSES ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -236,16 +249,20 @@
             leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 130px 'Segoe UI'";
             leftCtx.fillText("PAÍSES MIEMBROS", 100, 180);
 
-            const start = currentPaisPage * paisesPorPagina;
+            const startPais = currentPaisPage * paisesPorPagina;
             leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 95px 'Segoe UI'";
-            let y = 420;
-            data.paises.slice(start, start + paisesPorPagina).forEach(p => {
-                leftCtx.fillText(`• ${p}`, 120, y);
-                y += 135;
+            let yPais = 420;
+            data.paises.slice(startPais, startPais + paisesPorPagina).forEach(p => {
+                leftCtx.fillText(`• ${p}`, 120, yPais);
+                yPais += 135;
             });
+            
+            const totalPaisPages = Math.ceil(data.paises.length / paisesPorPagina) || 1;
+            leftCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; leftCtx.font = "65px 'Segoe UI'";
+            leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // Panel Derecho
+            // --- PANEL DERECHO: INFORMACIÓN PAGINADA ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 0, canvasW, canvasH);
@@ -261,12 +278,20 @@
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 710); rightCtx.lineTo(1948, 710); rightCtx.stroke();
 
+            // Renderizado de la página de información actual (Idéntico comportamiento que países)
             rightCtx.fillStyle = "#ffffff"; rightCtx.font = "95px 'Segoe UI'";
             rightCtx.textAlign = "left";
-            wrapText(rightCtx, data.info[currentInfoPage], 100, 800, 1840, 135);
+            
+            const textoPaginaActual = data.info[currentInfoPage] || "";
+            wrapText(rightCtx, textoPaginaActual, 100, 850, 1840, 135);
+
+            const totalInfoPages = data.info.length || 1;
+            rightCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; rightCtx.font = "65px 'Segoe UI'";
+            rightCtx.textAlign = "right";
+            rightCtx.fillText(`Info ${currentInfoPage + 1} de ${totalInfoPages}`, 1948, 1950);
             rightTexture.needsUpdate = true;
 
-            // Selector Inferior
+            // --- PANEL INFERIOR: SELECTOR DE ORGANIZACIÓN ---
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -278,9 +303,16 @@
             selectorTexture.needsUpdate = true;
         }
 
+        // ==================== INTERACCIONES Y SISTEMA DE PÁGINAS ====================
         function scrollPaises(dir) {
-            const total = Math.ceil(orgData[orgKeys[currentSelectedIndex]].paises.length / paisesPorPagina);
+            const total = Math.ceil(orgData[orgKeys[currentSelectedIndex]].paises.length / paisesPorPagina) || 1;
             currentPaisPage = (currentPaisPage + dir + total) % total;
+            renderUIElements(orgKeys[currentSelectedIndex]);
+        }
+
+        function scrollInfo(dir) {
+            const total = orgData[orgKeys[currentSelectedIndex]].info.length || 1;
+            currentInfoPage = (currentInfoPage + dir + total) % total;
             renderUIElements(orgKeys[currentSelectedIndex]);
         }
 
@@ -296,7 +328,7 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Rotación con joysticks
+            // Joystick: Rotación manual de la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) {
                 earth.rotation.y += sx * 0.03;
@@ -307,49 +339,35 @@
                 clouds.rotation.x += sy * 0.03;
             }
 
-            // D-Pad
+            // D-Pad Arriba/Abajo -> Cambia páginas de PAÍSES
             if (gp.buttons[12]?.pressed && !buttonPressedState.dpadUp) { buttonPressedState.dpadUp = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) buttonPressedState.dpadUp = false;
 
             if (gp.buttons[13]?.pressed && !buttonPressedState.dpadDown) { buttonPressedState.dpadDown = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) buttonPressedState.dpadDown = false;
 
-            if (gp.buttons[14]?.pressed && !buttonPressedState.dpadLeft) {
-                buttonPressedState.dpadLeft = true;
-                const t = orgData[orgKeys[currentSelectedIndex]].info.length;
-                currentInfoPage = (currentInfoPage - 1 + t) % t;
-                renderUIElements(orgKeys[currentSelectedIndex]);
-            } else if (!gp.buttons[14]?.pressed) buttonPressedState.dpadLeft = false;
+            // D-Pad Izquierda/Derecha -> Cambia páginas de INFORMACIÓN
+            if (gp.buttons[14]?.pressed && !buttonPressedState.dpadLeft) { buttonPressedState.dpadLeft = true; scrollInfo(-1); }
+            else if (!gp.buttons[14]?.pressed) buttonPressedState.dpadLeft = false;
 
-            if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) {
-                buttonPressedState.dpadRight = true;
-                const t = orgData[orgKeys[currentSelectedIndex]].info.length;
-                currentInfoPage = (currentInfoPage + 1) % t;
-                renderUIElements(orgKeys[currentSelectedIndex]);
-            } else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
+            if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) { buttonPressedState.dpadRight = true; scrollInfo(1); }
+            else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
 
-            // === BOTONES CAMBIADOS ===
-            if (gp.buttons[2]?.pressed && !buttonPressedState.square) { // Cuadrado
-                buttonPressedState.square = true;
-                navegarOrganizaciones(-1);
-            } else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
+            // Cuadrado (2) / Círculo (1) -> Cambia de Organización
+            if (gp.buttons[2]?.pressed && !buttonPressedState.square) { buttonPressedState.square = true; navegarOrganizaciones(-1); }
+            else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
 
-            if (gp.buttons[1]?.pressed && !buttonPressedState.circle) { // Círculo
-                buttonPressedState.circle = true;
-                navegarOrganizaciones(1);
-            } else if (!gp.buttons[1]?.pressed) buttonPressedState.circle = false;
+            if (gp.buttons[1]?.pressed && !buttonPressedState.circle) { buttonPressedState.circle = true; navegarOrganizaciones(1); }
+            else if (!gp.buttons[1]?.pressed) buttonPressedState.circle = false;
         }
 
         function animate() {
             requestAnimationFrame(animate);
-
             if (earth) {
                 earth.rotation.y += 0.0002;
                 clouds.rotation.y += 0.0004;
             }
-
             handleGamepadInput();
-
             if (isVR) {
                 if (vrControls) vrControls.update();
                 effect.render(scene, camera);
@@ -366,7 +384,7 @@
             effect.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // ==================== INICIO ====================
+        // Ejecución inicial
         init();
 
         document.getElementById('permission-btn').addEventListener('click', () => {
