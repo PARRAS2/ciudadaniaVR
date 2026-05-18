@@ -62,8 +62,8 @@
         let currentPaisPage = 0;
         let currentInfoPage = 0;
         
-        // Reducido a 10 países por página para acomodar la fuente más grande sin desbordar
-        const paisesPorPagina = 10; 
+        // Ajustado a 9 países por página para asegurar un acople perfecto con la fuente grande
+        const paisesPorPagina = 9; 
 
         let scene, camera, renderer, effect, vrControls, mouseControls;
         let earth, clouds, uiGroup;
@@ -83,7 +83,6 @@
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
 
-        // Variables para límites de zoom dinámico
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
 
@@ -130,7 +129,7 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra y Atmósfera
+            // Planeta Tierra
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
             const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 }));
@@ -234,26 +233,27 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERING CANVASES (UI) ====================
+        // ==================== RENDERING CANVASES (UI AJUSTADA) ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
 
-            // --- PANEL IZQUIERDO: PAÍSES (FUENTE AUMENTADA) ---
+            // --- PANEL IZQUIERDO: PAÍSES ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
             leftCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; leftCtx.lineWidth = 26;
             leftCtx.strokeRect(0, 0, canvasW, canvasH);
+            
             leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 140px 'Segoe UI'";
-            leftCtx.fillText("PAÍSES MIEMBROS", 100, 190);
+            leftCtx.fillText("PAÍSES MIEMBROS", 100, 200);
 
             const startPais = currentPaisPage * paisesPorPagina;
-            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 115px 'Segoe UI'"; // Aumentado de 95px a 115px
-            let yPais = 430;
+            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 115px 'Segoe UI'"; 
+            let yPais = 440;
             data.paises.slice(startPais, startPais + paisesPorPagina).forEach(p => {
                 leftCtx.fillText(`• ${p}`, 120, yPais);
-                yPais += 150; // Ajustado espacio entre renglones
+                yPais += 165; // Ajustado perfectamente para que no se peguen
             });
             
             const totalPaisPages = Math.ceil(data.paises.length / paisesPorPagina) || 1;
@@ -261,27 +261,46 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO: INFORMACIÓN (FUENTE AUMENTADA) ---
+            // --- PANEL DERECHO: INFORMACIÓN Y LOGO SOBRESALIENTE ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
+            
+            // Dibujamos el fondo de la tarjeta principal un poco más abajo (Y=300) para dejar que el logo sobresalga arriba
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
-            rightCtx.fillRect(0, 0, canvasW, canvasH);
+            rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26;
-            rightCtx.strokeRect(0, 0, canvasW, canvasH);
+            rightCtx.strokeRect(0, 300, canvasW, canvasH - 300);
 
-            if (loadedImages[key]) rightCtx.drawImage(loadedImages[key], 824, 80, 400, 400);
+            // LOGO: Aumentado considerablemente de tamaño (500x500) y movido hacia arriba (Y=50) sobresaliendo
+            const logoSize = 500;
+            const logoX = (canvasW - logoSize) / 2;
+            const logoY = 50; 
 
+            // Fondo estético y borde brillante para el logo que sobresale
+            rightCtx.fillStyle = "rgba(10, 18, 36, 1)";
+            rightCtx.fillRect(logoX - 15, logoY - 15, logoSize + 30, logoSize + 30);
+            rightCtx.strokeStyle = "#00a2ff"; rightCtx.lineWidth = 16;
+            rightCtx.strokeRect(logoX - 15, logoY - 15, logoSize + 30, logoSize + 30);
+
+            if (loadedImages[key]) {
+                rightCtx.drawImage(loadedImages[key], logoX, logoY, logoSize, logoSize);
+            }
+
+            // Nombre de la organización adaptado a la nueva posición más baja
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 155px 'Segoe UI'";
             rightCtx.textAlign = "center";
-            rightCtx.fillText(key.toUpperCase(), 1024, 560);
+            rightCtx.fillText(key.toUpperCase(), 1024, 690);
 
+            // Línea divisoria decorativa empujada hacia abajo
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
-            rightCtx.beginPath(); rightCtx.moveTo(100, 710); rightCtx.lineTo(1948, 710); rightCtx.stroke();
+            rightCtx.beginPath(); rightCtx.moveTo(100, 760); rightCtx.lineTo(1948, 760); rightCtx.stroke();
 
-            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "115px 'Segoe UI'"; // Aumentado de 95px a 115px
+            // Texto descriptivo con interlineado corregido y amplio margen inferior
+            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "115px 'Segoe UI'"; 
             rightCtx.textAlign = "left";
             
             const textoPaginaActual = data.info[currentInfoPage] || "";
-            wrapText(rightCtx, textoPaginaActual, 100, 880, 1840, 165); // Ajustado interlineado a 165
+            // Y inicial colocada a 930 para que fluya de manera natural sin encimarse
+            wrapText(rightCtx, textoPaginaActual, 100, 930, 1840, 165); 
 
             const totalInfoPages = data.info.length || 1;
             rightCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; rightCtx.font = "70px 'Segoe UI'";
@@ -326,7 +345,7 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Joystick Izquierdo (Ejes 0 y 1): Rotación de la Tierra
+            // Joystick Izquierdo: Rotación de la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) {
                 earth.rotation.y += sx * 0.03;
@@ -337,19 +356,13 @@
                 clouds.rotation.x += sy * 0.03;
             }
 
-            // === ACCIÓN NUEVA: ZOOM DINÁMICO CON JOYSTICK DERECHO HACIA DONDE MIRA EL PUNTERO ===
-            // Eje 3 suele representar el movimiento vertical del joystick derecho (D-Pad Derecho / Stick R)
+            // Zoom Dinámico con Joystick Derecho
             const zoomAxis = gp.axes[3]; 
             if (Math.abs(zoomAxis) > 0.15) {
-                // Obtener el vector de dirección hacia donde está apuntando la cámara exactamente
                 const direction = new THREE.Vector3();
                 camera.getWorldDirection(direction);
-
-                // Mover la cámara hacia adelante o atrás sobre su propio vector de vista de puntero
-                // Invertimos el signo para que presionar "Arriba" acerque el zoom
                 camera.position.addScaledVector(direction, -zoomAxis * 0.12);
 
-                // Validamos límites físicos para no traspasar el planeta ni alejarse al infinito
                 const distanciaAlCentro = camera.position.length();
                 if (distanciaAlCentro < MIN_ZOOM_DIST) {
                     camera.position.setLength(MIN_ZOOM_DIST);
