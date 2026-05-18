@@ -48,14 +48,10 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        // ==================== ENRUTAMIENTO INTELIGENTE AUTOMÁTICO ====================
-        // Detecta dinámicamente si el proyecto corre desde la raíz o dentro de la subcarpeta 'ciudadaniaVR'
-        const currentPath = window.location.pathname;
-        const basePath = currentPath.includes('ciudadaniaVR') ? './' : './ciudadaniaVR/';
-
-        const DATA_FOLDER_URL = `${basePath}datos/`; 
-        const TEXTURES_FOLDER_URL = `${basePath}texturas/`;
-        const LOGOS_FOLDER_URL = `${basePath}logotipos/`;
+        // ==================== RUTAS RELATIVAS DIRECTAS DE TU REPOSITORIO ====================
+        const DATA_FOLDER_URL = "datos/"; 
+        const TEXTURES_FOLDER_URL = "texturas/";
+        const LOGOS_FOLDER_URL = "logotipos/";
         
         const orgKeys = [
             "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
@@ -113,7 +109,7 @@
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
 
-        // ==================== CARGA DE DATOS ASÍNCRONA ====================
+        // ==================== CARGA DE ARCHIVOS JSON ====================
         async function loadAllOrganizationData() {
             const fetchPromises = orgKeys.map(async (key) => {
                 try {
@@ -128,11 +124,11 @@
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
-                    // Datos de contingencia local si el fetch es bloqueado o no encuentra el archivo JSON
+                    // Si el servidor bloquea el JSON localmente, se inyectan datos de respaldo para pintar la UI
                     orgData[key] = { 
                         anio: 2026, 
                         imagen: `${LOGOS_FOLDER_URL}${key}.jpg`, 
-                        info: [`Información base de ${key}. Asegúrate de cargar el archivo JSON correspondiente en tu servidor.`], 
+                        info: [`Información sobre ${key}. Revisa que los archivos JSON estén subidos de forma correcta en la carpeta /datos/.`], 
                         paises: ["Ecuador", "Colombia", "Perú", "Argentina", "Chile", "México"] 
                     };
                 }
@@ -142,7 +138,7 @@
             preloadImagesAndRender();
         }
 
-        // ==================== INICIALIZACIÓN DE ESCENA THREE.JS ====================
+        // ==================== INICIALIZACIÓN THREE.JS ====================
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -156,7 +152,6 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            // Iluminación global mejorada para evitar esferas negras
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
             hemiLight.position.set(0, 20, 0);
             scene.add(hemiLight);
@@ -165,11 +160,9 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Carga del mapa base planetario con la nueva ruta corregida
+            // Carga del mapa base (Confirmado que es PNG en tu captura)
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`, undefined, undefined, (err) => {
-                console.error("No se pudo cargar la textura predeterminada de la Tierra.");
-            }); 
+            defaultEarthTexture = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_daymap.png`); 
             
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ 
                 map: defaultEarthTexture, 
@@ -177,7 +170,7 @@
             }));
             scene.add(earth);
 
-            // Capa de nubes
+            // Capa de nubes (Confirmado que es .jpg en tu captura)
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
             const cloudsTex = textureLoader.load(`${TEXTURES_FOLDER_URL}8k_earth_clouds.jpg`); 
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
@@ -206,6 +199,7 @@
             animate();
         }
 
+        // Carga del fondo espacial (Confirmado que es .jpg en tu captura)
         function createSpaceBackground() {
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
             textureLoader.load(`${TEXTURES_FOLDER_URL}8k_stars_milky_way.jpg`, 
@@ -215,7 +209,6 @@
                 }, 
                 undefined, 
                 () => {
-                    // Respaldo de color sólido si el fondo estelar falla
                     const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: 0x050814, side: THREE.BackSide }));
                     scene.add(bgMesh);
                 }
@@ -266,7 +259,6 @@
             scene.add(uiGroup);
         }
 
-        // ==================== PRECARGA MULTIMEDIA CONTROLADA ====================
         function preloadImagesAndRender() {
             let loaded = 0;
             const totalAssets = orgKeys.length * 2;
@@ -314,7 +306,6 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERIZADO GRÁFICO DE TEXTOS EN LOS PANELES ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
@@ -336,7 +327,7 @@
             wrapText(siglasCtx, significado, 750, 110, 1350, 80);
             siglasTexture.needsUpdate = true;
 
-            // --- PANEL IZQUIERDO (PAÍSES) ---
+            // --- PANEL IZQUIERDO ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -360,7 +351,7 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO (INFORMACIÓN Y LOGO) ---
+            // --- PANEL DERECHO ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
@@ -399,7 +390,7 @@
             rightCtx.fillText(`Info ${currentInfoPage + 1} de ${totalInfoPages}`, 1948, 1950);
             rightTexture.needsUpdate = true;
 
-            // --- PANEL INFERIOR (SELECTOR CENTRAL) ---
+            // --- PANEL INFERIOR ---
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -411,7 +402,7 @@
             selectorTexture.needsUpdate = true;
         }
 
-        // ==================== INTERACCIONES ====================
+        // ==================== CONTROLES ====================
         function scrollPaises(dir) {
             const total = Math.ceil(orgData[orgKeys[currentSelectedIndex]].paises.length / paisesPorPagina) || 1;
             currentPaisPage = (currentPaisPage + dir + total) % total;
