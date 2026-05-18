@@ -1,12 +1,28 @@
-﻿{
+{
+  "nombre": "ACNUR",
   "anio": 1950,
   "imagen": "logos/ACNUR.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "El ACNUR (Alto Comisionado de las Naciones Unidas para los Refugiados) fue creado el 14 de diciembre de 1950 por la Asamblea General de la ONU para proteger a los millones de personas desplazadas tras la Segunda Guerra Mundial. Inicialmente se pensó que duraría solo 3 años, pero su mandato se ha renovado continuamente.",
+    "Es la principal organización internacional encargada de proteger a refugiados, solicitantes de asilo, desplazados internos y apátridas. Proporciona protección legal, asistencia humanitaria (alojamiento, comida, agua, salud y educación) y busca soluciones duraderas: repatriación voluntaria, integración local o reasentamiento.",
+    "Ha asistido a más de 100 millones de personas en sus 75 años de historia. Opera en más de 130 países y ganó el Premio Nobel de la Paz en 1954 y en 1981."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Argelia", "Argentina", "Armenia", "Australia", "Austria", "Azerbaiyán",
+    "Bahrein", "Bangladesh", "Barbados", "Bélgica", "Belice", "Benín", "Bolivia", "Bosnia y Herzegovina", "Botswana", "Brasil",
+    "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Camboya", "Camerún", "Canadá", "Chad", "Chile", "China",
+    "Colombia", "Comoras", "Congo", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador", "Egipto", "El Salvador",
+    "Emiratos Árabes Unidos", "Eritrea", "Eslovaquia", "Eslovenia", "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia",
+    "Francia", "Gabón", "Gambia", "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Guyana", "Haití",
+    "Honduras", "Hungría", "India", "Indonesia", "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Jamaica",
+    "Japón", "Jordania", "Kazajistán", "Kenya", "Kirguistán", "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano",
+    "Liberia", "Libia", "Liechtenstein", "Lituania", "Luxemburgo", "Macedonia del Norte", "Madagascar", "Malasia", "Malawi", "Malí",
+    "Malta", "Marruecos", "Mauricio", "Mauritania", "México", "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar",
+    "Namibia", "Nepal", "Nicaragua", "Níger", "Nigeria", "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán",
+    "Panamá", "Papúa Nueva Guinea", "Paraguay", "Perú", "Polonia", "Portugal", "Qatar", "Reino Unido", "República Centroafricana", "República Checa",
+    "República Democrática del Congo", "República Dominicana", "Rumania", "Rusia", "Ruanda", "Samoa", "San Marino", "Senegal", "Serbia", "Sierra Leona",
+    "Singapur", "Siria", "Somalia", "Sri Lanka", "Sudáfrica", "Sudán", "Sudán del Sur", "Suecia", "Suiza", "Surinam",
+    "Tailandia", "Tanzania", "Tayikistán", "Timor Oriental", "Togo", "Trinidad y Tobago", "Túnez", "Turquía", "Turkmenistán", "Ucrania",
+    "Uganda", "Uruguay", "Uzbekistán", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
