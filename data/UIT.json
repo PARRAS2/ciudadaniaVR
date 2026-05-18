@@ -1,12 +1,27 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "UIT",
+  "anio": 1865,
   "imagen": "logos/UIT.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "La Unión Internacional de Telecomunicaciones (UIT) es la organización especializada más antigua de las Naciones Unidas. Fue fundada en 1865 en París como Unión Internacional de Telégrafos y se convirtió en agencia especializada de la ONU en 1947.",
+    "Es responsable de coordinar el uso global del espectro radioeléctrico, establecer estándares técnicos internacionales para las telecomunicaciones y promover el desarrollo de las tecnologías de la información y comunicación en todo el mundo.",
+    "Trabaja para lograr una conectividad universal, segura y sostenible. Regula satélites, redes 5G, internet, radiodifusión y telefonía. Su lema es \"Conectar a todos en todas partes\"."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Antigua y Barbuda", "Arabia Saudita", "Argentina", "Armenia", "Australia", "Austria",
+    "Azerbaiyán", "Bahamas", "Bangladesh", "Barbados", "Bélgica", "Belice", "Benín", "Bolivia", "Bosnia y Herzegovina", "Botswana",
+    "Brasil", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Camboya", "Camerún", "Canadá", "Chad", "Chile",
+    "China", "Colombia", "Comoras", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador",
+    "Egipto", "El Salvador", "Emiratos Árabes Unidos", "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia", "Francia",
+    "Gabón", "Gambia", "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Guyana", "Haití", "Honduras",
+    "Hungría", "India", "Indonesia", "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Jamaica", "Japón",
+    "Jordania", "Kazajistán", "Kenya", "Kirguistán", "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano", "Liberia",
+    "Libia", "Liechtenstein", "Lituania", "Luxemburgo", "Macedonia del Norte", "Madagascar", "Malasia", "Malawi", "Malí", "Malta",
+    "Marruecos", "Mauricio", "Mauritania", "México", "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar", "Namibia",
+    "Nepal", "Nicaragua", "Níger", "Nigeria", "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán", "Panamá",
+    "Papúa Nueva Guinea", "Paraguay", "Perú", "Polonia", "Portugal", "Qatar", "Reino Unido", "República Checa", "Rumania", "Rusia",
+    "Ruanda", "Senegal", "Serbia", "Sierra Leona", "Singapur", "Siria", "Somalia", "Sri Lanka", "Sudáfrica", "Sudán",
+    "Sudán del Sur", "Suecia", "Suiza", "Surinam", "Tailandia", "Tanzania", "Tayikistán", "Togo", "Trinidad y Tobago", "Túnez",
+    "Turquía", "Turkmenistán", "Ucrania", "Uganda", "Uruguay", "Uzbekistán", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
