@@ -49,7 +49,7 @@
 
     <script>
         // ==================== CONFIGURACIÓN DE RUTAS LOCALES ====================
-        const DATA_FOLDER_URL = "./data/"; 
+        const DATA_FOLDER_URL = "./datos/"; // Corregido según tu GitHub que usa 'datos'
         
         const orgKeys = [
             "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
@@ -101,8 +101,6 @@
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
-        
-        // === CONTENEDOR: Para almacenar las texturas cargadas del planeta ===
         const loadedTextures = {}; 
         let defaultEarthTexture;
 
@@ -119,13 +117,14 @@
                     
                     orgData[key] = {
                         anio: json.anio || json.año || 2026,
-                        imagen: json.imagen || `logos/${key}.jpg`,
+                        // CORREGIDO: Apunta a 'logotipos' en lugar de 'logos' según tu GitHub
+                        imagen: json.imagen || `logotipos/${key}.jpg`, 
                         info: Array.isArray(json.info) ? json.info : [json.info],
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
                     console.error(`Error procesando los datos de: ${key}`, error);
-                    orgData[key] = { anio: 2026, imagen: `logos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
+                    orgData[key] = { anio: 2026, imagen: `logotipos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
                 }
             });
 
@@ -147,21 +146,32 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            // OPTIMIZACIÓN DE LUZ: HemisphereLight evita que los materiales oscuros se vuelvan negros absolutos
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+            hemiLight.position.set(0, 20, 0);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra Inicial (.png corregido)
+            // CORREGIDO: Carga de textura base .png según tu estructura exacta
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
             defaultEarthTexture = textureLoader.load('texturas/8k_earth_daymap.png'); 
-            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: defaultEarthTexture, shininess: 15 }));
+            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ 
+                map: defaultEarthTexture, 
+                shininess: 25 
+            }));
             scene.add(earth);
 
+            // Nubes .jpg
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
             const cloudsTex = textureLoader.load('texturas/8k_earth_clouds.jpg'); 
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
-                alphaMap: cloudsTex, transparent: true, color: 0xffffff, depthWrite: false 
+                alphaMap: cloudsTex, 
+                transparent: true, 
+                color: 0xffffff, 
+                depthWrite: false 
             }));
             scene.add(clouds);
 
@@ -236,16 +246,20 @@
         // ==================== PRECARGA DE IMÁGENES Y TEXTURAS DINÁMICAS ====================
         function preloadImagesAndRender() {
             let loaded = 0;
+            const totalAssets = orgKeys.length * 2;
+
             orgKeys.forEach(key => {
-                // 1. Precarga del logo para el Canvas
+                // 1. Carga de logotipos desde la carpeta real 'logotipos'
                 const img = new Image();
                 img.src = orgData[key].imagen;
                 img.onload = () => { checkAssetsLoaded(); };
-                img.onerror = () => { checkAssetsLoaded(); };
+                img.onerror = () => { 
+                    console.warn(`No se pudo cargar la imagen: ${img.src}. Usando respaldo vacío.`);
+                    checkAssetsLoaded(); 
+                };
                 loadedImages[key] = img;
 
-                // 2. Precarga de la textura personalizada del planeta (.png)
-                // CORREGIDO: Se añadió la coma faltante después de la ruta de la textura
+                // 2. Intento de carga de textura personalizada de la organización
                 textureLoader.load(
                     `texturas/${key}.png`,
                     (tex) => {
@@ -254,7 +268,7 @@
                     },
                     undefined,
                     (err) => {
-                        console.warn(`No se encontró textura para ${key}, se usará la por defecto.`);
+                        // Respaldo automático: si no existe el mapa de la organización, usa el mapa base
                         loadedTextures[key] = defaultEarthTexture; 
                         checkAssetsLoaded();
                     }
@@ -263,7 +277,7 @@
 
             function checkAssetsLoaded() {
                 loaded++;
-                if (loaded === orgKeys.length * 2) {
+                if (loaded === totalAssets) {
                     renderUIElements(orgKeys[currentSelectedIndex]);
                 }
             }
@@ -288,8 +302,9 @@
             const data = orgData[key];
             if (!data) return;
 
-            if (earth && loadedTextures[key]) {
-                earth.material.map = loadedTextures[key];
+            // Actualizar la textura del planeta de forma segura
+            if (earth) {
+                earth.material.map = loadedTextures[key] || defaultEarthTexture;
                 earth.material.needsUpdate = true;
             }
 
@@ -345,7 +360,7 @@
             rightCtx.strokeStyle = "#00a2ff"; rightCtx.lineWidth = 16;
             rightCtx.strokeRect(logoX - 15, logoY - 15, logoSize + 30, logoSize + 30);
 
-            if (loadedImages[key]) {
+            if (loadedImages[key] && loadedImages[key].complete && loadedImages[key].naturalWidth !== 0) {
                 rightCtx.drawImage(loadedImages[key], logoX, logoY, logoSize, logoSize);
             }
 
@@ -380,7 +395,7 @@
             selectorTexture.needsUpdate = true;
         }
 
-        // ==================== INTERACCIONES Y SISTEMA DE PÁGINAS ====================
+        // ==================== INTERACCIONES Y PÁGINAS ====================
         function scrollPaises(dir) {
             const total = Math.ceil(orgData[orgKeys[currentSelectedIndex]].paises.length / paisesPorPagina) || 1;
             currentPaisPage = (currentPaisPage + dir + total) % total;
@@ -405,7 +420,7 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Joystick Izquierdo: Rotación de la Tierra
+            // Joystick Izquierdo: Rotación Manual de la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) {
                 earth.rotation.y += sx * 0.03;
@@ -416,7 +431,7 @@
                 clouds.rotation.x += sy * 0.03;
             }
 
-            // Zoom Dinámico con Joystick Derecho (Hacia donde apunta el visor)
+            // Joystick Derecho: Zoom Progresivo
             const zoomAxis = gp.axes[3]; 
             if (Math.abs(zoomAxis) > 0.15) {
                 const direction = new THREE.Vector3();
@@ -445,7 +460,7 @@
             if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) { buttonPressedState.dpadRight = true; scrollInfo(1); }
             else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
 
-            // Cuadrado / Círculo -> Cambia de Organización
+            // Botones Cuadrado / Círculo -> Cambiar de Organización
             if (gp.buttons[2]?.pressed && !buttonPressedState.square) { buttonPressedState.square = true; navegarOrganizaciones(-1); }
             else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
 
