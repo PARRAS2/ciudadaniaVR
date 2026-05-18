@@ -14,7 +14,7 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             padding: 15px 40px; font-size: 20px; background-color: #007bff; color: white;
             border: none; border-radius: 8px; cursor: pointer; z-index: 30;
-            box-shadow: 0px 6px 15px rgba(0,123,255,0.6);
+            box-shadow: 0px 6px 15 rgba(0,123,255,0.6);
             transition: all 0.3s;
         }
         #permission-btn:hover {
@@ -49,8 +49,7 @@
 
     <script>
         // ==================== CONFIGURACIÓN DE RUTAS LOCALES ====================
-        // Como tu HTML está dentro de la carpeta "texturas", subimos un nivel para buscar los JSON de datos
-        const DATA_FOLDER_URL = "../datos/"; 
+        const DATA_FOLDER_URL = "./data/"; 
         
         const orgKeys = [
             "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
@@ -58,6 +57,7 @@
             "ONU", "OPAQ", "PMA", "PNUMA", "UIT", "UNESCO", "UNICEF"
         ];
 
+        // Diccionario para mostrar el significado de las siglas sobre el planeta
         const diccionarioSiglas = {
             "ACNUR": "Alto Comisionado de las Naciones Unidas para los Refugiados",
             "Banco Mundial": "Grupo del Banco Mundial (Financiamiento Global)",
@@ -103,6 +103,7 @@
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
         
+        // Cache de texturas de mapas mundiales cargados para evitar recargas lentas
         const texturasOrganizaciones = {};
         let texturaBaseTierra;
 
@@ -119,14 +120,13 @@
                     
                     orgData[key] = {
                         anio: json.anio || json.año || 2026,
-                        // Subimos un nivel para ir a la carpeta logotipos
-                        imagen: json.imagen || `../logotipos/${key}.jpg`, 
+                        imagen: json.imagen || `logos/${key}.jpg`,
                         info: Array.isArray(json.info) ? json.info : [json.info],
                         paises: Array.isArray(json.paises) ? json.paises : (json.países || [])
                     };
                 } catch (error) {
                     console.error(`Error procesando los datos de: ${key}`, error);
-                    orgData[key] = { anio: 2026, imagen: `../logotipos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
+                    orgData[key] = { anio: 2026, imagen: `logos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
                 }
             });
 
@@ -153,15 +153,14 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
+            // Planeta Tierra - Carga inicial de textura base
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            
-            // CORRECCIÓN: Como el HTML está en la misma carpeta, la ruta es directa sin "textures/"
-            texturaBaseTierra = textureLoader.load('8k_earth_daymap.png');
+            texturaBaseTierra = textureLoader.load('textures/8k_earth_daymap.png');
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: texturaBaseTierra, shininess: 15 }));
             scene.add(earth);
 
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTex = textureLoader.load('8k_earth_clouds.jpg');
+            const cloudsTex = textureLoader.load('textures/8k_earth_clouds.jpg');
             clouds = new THREE.Mesh(cloudsGeo, new THREE.MeshPhongMaterial({ 
                 alphaMap: cloudsTex, transparent: true, color: 0xffffff, depthWrite: false 
             }));
@@ -187,7 +186,7 @@
 
         function createSpaceBackground() {
             const bgGeo = new THREE.SphereGeometry(90, 32, 32);
-            const bgTex = textureLoader.load('8k_stars_milky_way.jpg');
+            const bgTex = textureLoader.load('textures/8k_stars_milky_way.jpg');
             scene.add(new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map: bgTex, side: THREE.BackSide })));
         }
 
@@ -204,6 +203,7 @@
             selectorCtx = selectorCanvas.getContext('2d');
             selectorTexture = new THREE.CanvasTexture(selectorCanvas);
 
+            // Canvas nuevo para las siglas flotantes sobre el planeta
             siglasCanvas = document.createElement('canvas'); siglasCanvas.width = 1500; siglasCanvas.height = 300;
             siglasCtx = siglasCanvas.getContext('2d');
             siglasTexture = new THREE.CanvasTexture(siglasCanvas);
@@ -211,6 +211,7 @@
 
         function createSpatialUI() {
             uiGroup = new THREE.Group();
+            
             const panelGeo = new THREE.PlaneGeometry(3.6, 4.2);
 
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
@@ -228,6 +229,7 @@
             selectorPanelMesh.rotation.x = -0.3;
             uiGroup.add(selectorPanelMesh);
 
+            // === NUEVO PANEL 3D: Texto flotante sobre el planeta ===
             siglasMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.76), new THREE.MeshBasicMaterial({ map: siglasTexture, transparent: true, side: THREE.DoubleSide }));
             siglasMesh.position.set(0, 1.8, -0.4); 
             uiGroup.add(siglasMesh);
@@ -263,41 +265,46 @@
         function cambiarTexturaPlaneta(key) {
             if (!earth) return;
 
+            // Si la textura ya fue cargada anteriormente, la tomamos de la cache directamente
             if (texturasOrganizaciones[key]) {
                 earth.material.map = texturasOrganizaciones[key];
                 earth.material.needsUpdate = true;
                 return;
             }
 
-            // CORRECCIÓN: Ruta directa porque los archivos PNG de los mapas están junto al HTML
-            const rutaTextura = `${key}.png`;
+            // Si no está en cache, la cargamos asíncronamente desde el directorio de texturas
+            const rutaTextura = `textures/${key}.png`;
             
             textureLoader.load(
                 rutaTextura,
                 (texture) => {
+                    // Éxito: Guardamos en cache y asignamos
                     texturasOrganizaciones[key] = texture;
                     earth.material.map = texture;
                     earth.material.needsUpdate = true;
                 },
                 undefined,
                 (err) => {
-                    console.warn(`No se encontró mapa de textura para ${key}, usando mapa base.`);
+                    // Error: Si no encuentra el archivo .png de la organización, mantiene/vuelve a la textura base
+                    console.warn(`No se encontró mapa de textura para ${key}, usando mapa base por defecto.`);
                     earth.material.map = texturaBaseTierra;
                     earth.material.needsUpdate = true;
                 }
             );
         }
 
+        // Centralizador de actualizaciones al cambiar de organización
         function cambiarOrganizacionUI(key) {
             renderUIElements(key);
             cambiarTexturaPlaneta(key);
         }
 
-        // ==================== RENDERING CANVASES ====================
+        // ==================== RENDERING CANVASES (UI ACTUALIZADA) ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
 
+            // --- INTERFAZ SOBRE EL PLANETA: SIGNIFICADO DE LAS SIGLAS ---
             siglasCtx.clearRect(0, 0, 1500, 300);
             siglasCtx.fillStyle = "rgba(10, 16, 36, 0.85)";
             siglasCtx.beginPath();
@@ -312,6 +319,7 @@
             wrapText(siglasCtx, significado, 750, 110, 1350, 80);
             siglasTexture.needsUpdate = true;
 
+            // --- PANEL IZQUIERDO: PAÍSES ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
@@ -335,6 +343,7 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
+            // --- PANEL DERECHO: INFORMACIÓN ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
@@ -374,6 +383,7 @@
             rightCtx.fillText(`Info ${currentInfoPage + 1} de ${totalInfoPages}`, 1948, 1950);
             rightTexture.needsUpdate = true;
 
+            // --- PANEL INFERIOR: SELECTOR ---
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -410,6 +420,7 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
+            // Joystick Izquierdo: Rotación de la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) {
                 earth.rotation.y += sx * 0.03;
@@ -420,6 +431,7 @@
                 clouds.rotation.x += sy * 0.03;
             }
 
+            // Zoom Dinámico con Joystick Derecho
             const zoomAxis = gp.axes[3]; 
             if (Math.abs(zoomAxis) > 0.15) {
                 const direction = new THREE.Vector3();
@@ -434,24 +446,26 @@
                 }
             }
 
+            // D-Pad Arriba/Abajo -> Páginas de PAÍSES
             if (gp.buttons[12]?.pressed && !buttonPressedState.dpadUp) { buttonPressedState.dpadUp = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) buttonPressedState.dpadUp = false;
 
             if (gp.buttons[13]?.pressed && !buttonPressedState.dpadDown) { buttonPressedState.dpadDown = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) buttonPressedState.dpadDown = false;
 
+            // D-Pad Izquierda/Derecha -> Páginas de INFORMACIÓN
             if (gp.buttons[14]?.pressed && !buttonPressedState.dpadLeft) { buttonPressedState.dpadLeft = true; scrollInfo(-1); }
             else if (!gp.buttons[14]?.pressed) buttonPressedState.dpadLeft = false;
 
             if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) { buttonPressedState.dpadRight = true; scrollInfo(1); }
             else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
 
-            // CORRECCIÓN AQUÍ: Se eliminó el doble dos puntos intruso (::) que causaba el SyntaxError
+            // Cuadrado / Círculo -> Cambia de Organización
             if (gp.buttons[2]?.pressed && !buttonPressedState.square) { buttonPressedState.square = true; navegarOrganizaciones(-1); }
             else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
 
-            if (gp.buttons[1]?.pressed && !buttonPressedState.circle) { buttonPressedState.circle = true; navegarOrganizaciones(1); }
-            else if (!gp.buttons[1]?.pressed) buttonPressedState.circle = false;
+            if (gp.buttons[1]::pressed && !buttonPressedState.circle) { buttonPressedState.circle = true; navegarOrganizaciones(1); }
+            else if (!gp.buttons[1]::pressed) buttonPressedState.circle = false;
         }
 
         function animate() {
@@ -480,22 +494,11 @@
         init();
 
         document.getElementById('permission-btn').addEventListener('click', () => {
-            const docElm = document.documentElement;
-            
-            if (docElm.requestFullscreen) { docElm.requestFullscreen(); }
-            else if (docElm.mozRequestFullScreen) { docElm.mozRequestFullScreen(); }
-            else if (docElm.webkitRequestFullscreen) { docElm.webkitRequestFullscreen(); }
-            else if (docElm.msRequestFullscreen) { docElm.msRequestFullscreen(); }
-
-            setTimeout(() => {
-                document.getElementById('permission-btn').style.display = 'none';
-                isVR = true;
-                document.getElementById('reticle-pc').style.display = 'none';
-                document.getElementById('reticle-left').style.display = 'block';
-                document.getElementById('reticle-right').style.display = 'block';
-                
-                onWindowResize();
-            }, 150);
+            document.getElementById('permission-btn').style.display = 'none';
+            isVR = true;
+            document.getElementById('reticle-pc').style.display = 'none';
+            document.getElementById('reticle-left').style.display = 'block';
+            document.getElementById('reticle-right').style.display = 'block';
         });
     </script>
 </body>
