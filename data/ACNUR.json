@@ -1,7 +1,7 @@
 {
   "nombre": "ACNUR",
   "anio": 1950,
-  "imagen": "logos/ACNUR.jpg",
+  "imagen": "../logos/ACNUR.jpg",
   "info": [
     "El ACNUR (Alto Comisionado de las Naciones Unidas para los Refugiados) fue creado el 14 de diciembre de 1950 por la Asamblea General de la ONU para proteger a los millones de personas desplazadas tras la Segunda Guerra Mundial. Inicialmente se pensó que duraría solo 3 años, pero su mandato se ha renovado continuamente.",
     "Es la principal organización internacional encargada de proteger a refugiados, solicitantes de asilo, desplazados internos y apátridas. Proporciona protección legal, asistencia humanitaria (alojamiento, comida, agua, salud y educación) y busca soluciones duraderas: repatriación voluntaria, integración local o reasentamiento.",
