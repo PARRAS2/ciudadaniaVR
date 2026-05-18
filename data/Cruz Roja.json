@@ -1,7 +1,7 @@
 {
   "nombre": "Cruz Roja",
   "anio": 1863,
-  "imagen": "../logos/Cruz Roja.jpg",
+  "imagen": "logos/Cruz Roja.jpg",
   "info": [
     "El Movimiento Internacional de la Cruz Roja y de la Media Luna Roja fue fundado en 1863 por Henry Dunant tras presenciar la batalla de Solferino. Es uno de los movimientos humanitarios más antiguos y grandes del mundo.",
     "Está compuesto por el Comité Internacional de la Cruz Roja (CICR), las Sociedades Nacionales de la Cruz Roja y la Media Luna Roja, y la Federación Internacional. Se rige por los 7 Principios Fundamentales: Humanidad, Imparcialidad, Neutralidad, Independencia, Voluntariado, Unidad y Universalidad.",
