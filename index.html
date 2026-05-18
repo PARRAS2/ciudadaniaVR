@@ -145,57 +145,52 @@
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
 
-        // ==================== FUNCIONES PRINCIPALES ====================
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.copy(defaultCameraPos);
-            scene.add(camera);
+       function handleGamepadInput() {
+    if (activeGamepad === null) return;
+    const gp = navigator.getGamepads()[activeGamepad];
+    if (!gp) return;
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+    const sx = gp.axes[0], sy = gp.axes[1];
+    if (Math.abs(sx) > 0.15) { 
+        earth.rotation.y += sx * 0.03; 
+        clouds.rotation.y += sx * 0.03; 
+    }
+    if (Math.abs(sy) > 0.15) { 
+        earth.rotation.x += sy * 0.03; 
+        clouds.rotation.x += sy * 0.03; 
+    }
 
-            effect = new THREE.StereoEffect(renderer);
-            effect.setSize(window.innerWidth, window.innerHeight);
+    // === Controles D-Pad (sin cambios) ===
+    if (gp.buttons[12]?.pressed && !dpadPressedState.up) { 
+        dpadPressedState.up = true; scrollPaises(-1); 
+    } else if (!gp.buttons[12]?.pressed) dpadPressedState.up = false;
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-            directionalLight.position.set(5, 5, 6);
-            scene.add(directionalLight);
+    if (gp.buttons[13]?.pressed && !dpadPressedState.down) { 
+        dpadPressedState.down = true; scrollPaises(1); 
+    } else if (!gp.buttons[13]?.pressed) dpadPressedState.down = false;
 
-            const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
-            const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 });
-            earth = new THREE.Mesh(geometry, earthMaterial);
-            scene.add(earth);
+    if (gp.buttons[14]?.pressed && !dpadPressedState.left) {
+        dpadPressedState.left = true;
+        const t = orgData[orgKeys[currentSelectedIndex]].info.length;
+        currentInfoPage = (currentInfoPage - 1 + t) % t;
+        renderUIElements(orgKeys[currentSelectedIndex]);
+    } else if (!gp.buttons[14]?.pressed) dpadPressedState.left = false;
 
-            const cloudsGeometry = new THREE.SphereGeometry(1.215, 64, 64);
-            const cloudsTexture = textureLoader.load('textures/8k_earth_clouds.jpg');
-            const cloudsMaterial = new THREE.MeshPhongMaterial({ alphaMap: cloudsTexture, transparent: true, color: 0xffffff, depthWrite: false });
-            clouds = new THREE.Mesh(cloudsGeometry, cloudsMaterial);
-            scene.add(clouds);
+    if (gp.buttons[15]?.pressed && !dpadPressedState.right) {
+        dpadPressedState.right = true;
+        const t = orgData[orgKeys[currentSelectedIndex]].info.length;
+        currentInfoPage = (currentInfoPage + 1) % t;
+        renderUIElements(orgKeys[currentSelectedIndex]);
+    } else if (!gp.buttons[15]?.pressed) dpadPressedState.right = false;
 
-            createSpaceBackground(textureLoader);
-            setupTextCanvases();
-            createSpatialUI();
-
-            mouseControls = new THREE.OrbitControls(camera, renderer.domElement);
-            mouseControls.enableZoom = true;
-            mouseControls.enablePan = true;
-            mouseControls.enableDamping = true;
-            mouseControls.dampingFactor = 0.05;
-
-            vrControls = new THREE.DeviceOrientationControls(camera);
-
-            window.addEventListener("gamepadconnected", (e) => { activeGamepad = e.gamepad.index; });
-            window.addEventListener("gamepaddisconnected", () => { activeGamepad = null; });
-            window.addEventListener('resize', onWindowResize);
-
-            preloadImagesAndRender();
-            animate();
-        }
+    // === NUEVOS CONTROLES: Cuadrado y Círculo ===
+    if (gp.buttons[2]?.pressed) {           // Cuadrado (Square)
+        navegarOrganizaciones(-1);
+    }
+    if (gp.buttons[1]?.pressed) {           // Círculo (Circle)
+        navegarOrganizaciones(1);
+    }
+}
 
         function createSpaceBackground(loader) {
             const backgroundGeometry = new THREE.SphereGeometry(90, 32, 32);
