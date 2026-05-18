@@ -57,7 +57,6 @@
             "ONU", "OPAQ", "PMA", "PNUMA", "UIT", "UNESCO", "UNICEF"
         ];
 
-        // Diccionario para mostrar el significado de las siglas sobre el planeta
         const diccionarioSiglas = {
             "ACNUR": "Alto Comisionado de las Naciones Unidas para los Refugiados",
             "Banco Mundial": "Grupo del Banco Mundial (Financiamiento Global)",
@@ -102,6 +101,10 @@
         const canvasW = 2048, canvasH = 2048;
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
+        
+        // === NUEVO CONTENEDOR: Para almacenar las texturas cargadas del planeta ===
+        const loadedTextures = {}; 
+        let defaultEarthTexture;
 
         const MIN_ZOOM_DIST = 2.5;
         const MAX_ZOOM_DIST = 8.5;
@@ -149,10 +152,10 @@
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra
+            // Planeta Tierra Inicial (Carga la por defecto por seguridad)
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
-            const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
-            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 }));
+            defaultEarthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
+            earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: defaultEarthTexture, shininess: 15 }));
             scene.add(earth);
 
             const cloudsGeo = new THREE.SphereGeometry(1.215, 64, 64);
@@ -199,7 +202,6 @@
             selectorCtx = selectorCanvas.getContext('2d');
             selectorTexture = new THREE.CanvasTexture(selectorCanvas);
 
-            // Canvas nuevo para las siglas flotantes sobre el planeta
             siglasCanvas = document.createElement('canvas'); siglasCanvas.width = 1500; siglasCanvas.height = 300;
             siglasCtx = siglasCanvas.getContext('2d');
             siglasTexture = new THREE.CanvasTexture(siglasCanvas);
@@ -207,8 +209,6 @@
 
         function createSpatialUI() {
             uiGroup = new THREE.Group();
-            
-            // Paneles laterales devueltos a un tamaño estilizado equilibrado
             const panelGeo = new THREE.PlaneGeometry(3.6, 4.2);
 
             leftPanelMesh = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ map: leftTexture, transparent: true, side: THREE.DoubleSide }));
@@ -226,22 +226,48 @@
             selectorPanelMesh.rotation.x = -0.3;
             uiGroup.add(selectorPanelMesh);
 
-            // === NUEVO PANEL 3D: Texto flotante sobre el planeta ===
             siglasMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.76), new THREE.MeshBasicMaterial({ map: siglasTexture, transparent: true, side: THREE.DoubleSide }));
-            siglasMesh.position.set(0, 1.8, -0.4); // Justo encima de la Tierra
+            siglasMesh.position.set(0, 1.8, -0.4); 
             uiGroup.add(siglasMesh);
 
             scene.add(uiGroup);
         }
 
+        // ==================== PRECARGA DE IMÁGENES Y TEXTURAS DINÁMICAS ====================
         function preloadImagesAndRender() {
             let loaded = 0;
             orgKeys.forEach(key => {
+                // 1. Precarga del logo para el Canvas
                 const img = new Image();
                 img.src = orgData[key].imagen;
-                img.onload = () => { loadedImages[key] = img; loaded++; if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]); };
-                img.onerror = () => { loaded++; if (loaded === orgKeys.length) renderUIElements(orgKeys[currentSelectedIndex]); };
+                img.onload = () => { checkAssetsLoaded(); };
+                img.onerror = () => { checkAssetsLoaded(); };
+                loadedImages[key] = img;
+
+                // 2. MODIFICACIÓN: Precarga de la textura personalizada del planeta (.jpg)
+                // Se busca directamente dentro de la carpeta textures con el nombre de la organización
+                textureLoader.load(
+                    `textures/${key}.jpg`,
+                    (tex) => {
+                        loadedTextures[key] = tex;
+                        checkAssetsLoaded();
+                    },
+                    undefined,
+                    (err) => {
+                        console.warn(`No se encontró textura para ${key}, se usará la por defecto.`);
+                        loadedTextures[key] = defaultEarthTexture; // Respaldo si no existe el archivo
+                        checkAssetsLoaded();
+                    }
+                );
             });
+
+            function checkAssetsLoaded() {
+                loaded++;
+                // Multiplicamos por 2 porque cargamos tanto la imagen del logo como la textura 3D por cada organización
+                if (loaded === orgKeys.length * 2) {
+                    renderUIElements(orgKeys[currentSelectedIndex]);
+                }
+            }
         }
 
         function wrapText(ctx, text, x, y, maxW, lineH) {
@@ -258,22 +284,23 @@
             ctx.fillText(line, x, y);
         }
 
-        // ==================== RENDERING CANVASES (UI ACTUALIZADA) ====================
+        // ==================== RENDERING CANVASES (UI) ====================
         function renderUIElements(key) {
             const data = orgData[key];
             if (!data) return;
 
-            // --- INTERFAZ SOBRE EL PLANETA: SIGNIFICADO DE LAS SIGLAS ---
+            // === CAMBIO CRÍTICO: Actualizar textura de la Tierra según la organización actual ===
+            if (earth && loadedTextures[key]) {
+                earth.material.map = loadedTextures[key];
+                earth.material.needsUpdate = true;
+            }
+
+            // --- INTERFAZ SOBRE EL PLANETA ---
             siglasCtx.clearRect(0, 0, 1500, 300);
-            // Fondo semi-transparente curvo/estético para el letrero superior
             siglasCtx.fillStyle = "rgba(10, 16, 36, 0.85)";
-            siglasCtx.beginPath();
-            siglasCtx.roundRect(0, 0, 1500, 300, 40);
-            siglasCtx.fill();
-            siglasCtx.strokeStyle = "rgba(0, 162, 255, 0.8)"; siglasCtx.lineWidth = 8;
-            siglasCtx.stroke();
+            siglasCtx.beginPath(); siglasCtx.roundRect(0, 0, 1500, 300, 40); siglasCtx.fill();
+            siglasCtx.strokeStyle = "rgba(0, 162, 255, 0.8)"; siglasCtx.lineWidth = 8; siglasCtx.stroke();
             
-            // Texto del significado centrado
             siglasCtx.fillStyle = "#ffffff"; siglasCtx.font = "bold 58px 'Segoe UI'";
             siglasCtx.textAlign = "center";
             const significado = diccionarioSiglas[key] || key;
@@ -304,16 +331,13 @@
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO: INFORMACIÓN (FUENTE REDUCIDA Y OPTIMIZADA) ---
+            // --- PANEL DERECHO: INFORMACIÓN ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
-            
-            // Fondo de la tarjeta desplazado hacia abajo para dar espacio a la pestaña del logo
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 300, canvasW, canvasH - 300);
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; rightCtx.lineWidth = 26;
             rightCtx.strokeRect(0, 300, canvasW, canvasH - 300);
 
-            // LOGO: Tarjeta sobresaliente superior aumentada
             const logoSize = 500;
             const logoX = (canvasW - logoSize) / 2;
             const logoY = 50; 
@@ -327,7 +351,6 @@
                 rightCtx.drawImage(loadedImages[key], logoX, logoY, logoSize, logoSize);
             }
 
-            // Título de la Organización
             rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 155px 'Segoe UI'";
             rightCtx.textAlign = "center";
             rightCtx.fillText(key.toUpperCase(), 1024, 690);
@@ -335,13 +358,10 @@
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 760); rightCtx.lineTo(1948, 760); rightCtx.stroke();
 
-            // === AJUSTE SOLICITADO: Texto de información reducido para legibilidad óptima ===
-            rightCtx.fillStyle = "#ffffff"; 
-            rightCtx.font = "80px 'Segoe UI'"; // Reducido de 115px a 80px para dar espacio y evitar desbordamientos
+            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "80px 'Segoe UI'"; 
             rightCtx.textAlign = "left";
             
             const textoPaginaActual = data.info[currentInfoPage] || "";
-            // Interlineado ajustado proporcionalmente a 110px
             wrapText(rightCtx, textoPaginaActual, 110, 890, 1820, 110); 
 
             const totalInfoPages = data.info.length || 1;
