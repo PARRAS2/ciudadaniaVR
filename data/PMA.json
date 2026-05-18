@@ -1,12 +1,21 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "PMA",
+  "anio": 1961,
   "imagen": "logos/PMA.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "El Programa Mundial de Alimentos (PMA) fue fundado en 1961 y es la mayor organización humanitaria del mundo que lucha contra el hambre. Es la agencia de la ONU especializada en asistencia alimentaria.",
+    "Proporciona comida de emergencia en zonas afectadas por conflictos armados, desastres naturales y hambrunas. Además, implementa programas de nutrición, empoderamiento de mujeres, resiliencia comunitaria y apoyo a pequeños agricultores.",
+    "Distribuye millones de toneladas de alimento al año y salva vidas en más de 80 países. En 2020 recibió el Premio Nobel de la Paz por sus esfuerzos en la lucha contra el hambre durante conflictos y desastres."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Argentina", "Australia", "Austria", "Bangladesh", "Bélgica", "Bolivia",
+    "Brasil", "Burkina Faso", "Burundi", "Camerún", "Canadá", "Chad", "Chile", "China", "Colombia", "Congo",
+    "Corea del Sur", "Costa Rica", "Cuba", "Ecuador", "Egipto", "El Salvador", "España", "Estados Unidos", "Etiopía", "Filipinas",
+    "Francia", "Gabón", "Gambia", "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Haití", "Honduras",
+    "India", "Indonesia", "Irán", "Irlanda", "Italia", "Japón", "Jordania", "Kenya", "Libano", "Liberia",
+    "Libia", "Madagascar", "Malawi", "Malí", "Mauritania", "México", "Mozambique", "Myanmar", "Nepal", "Níger",
+    "Nigeria", "Noruega", "Pakistán", "Panamá", "Paraguay", "Perú", "República Centroafricana", "República Democrática del Congo", "Ruanda", "Senegal",
+    "Sierra Leona", "Siria", "Somalia", "Sudáfrica", "Sudán", "Sudán del Sur", "Tanzania", "Tailandia", "Timor Oriental", "Turquía",
+    "Uganda", "Ucrania", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
