@@ -1,12 +1,25 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "PNUMA",
+  "anio": 1972,
   "imagen": "logos/PNUMA.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "El Programa de las Naciones Unidas para el Medio Ambiente (PNUMA) fue creado en 1972 tras la Conferencia de Estocolmo sobre el Medio Ambiente Humano. Es la principal autoridad ambiental del sistema de Naciones Unidas.",
+    "Coordina la acción ambiental global, monitorea el estado del planeta, promueve la implementación de acuerdos ambientales multilaterales (como el Acuerdo de París sobre cambio climático) y apoya a los países en la transición hacia economías sostenibles y verdes.",
+    "Trabaja en temas clave como cambio climático, pérdida de biodiversidad, contaminación plástica, economía circular y desarrollo sostenible. Su sede está en Nairobi, Kenia."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaiyán", "Bahrein",
+    "Bangladesh", "Bélgica", "Bolivia", "Brasil", "Bulgaria", "Burkina Faso", "Burundi", "Camerún", "Canadá", "Chile",
+    "China", "Colombia", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador", "Egipto",
+    "El Salvador", "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia", "Francia", "Gabón", "Gambia",
+    "Georgia", "Ghana", "Grecia", "Guatemala", "Guinea", "Haití", "Honduras", "Hungría", "India", "Indonesia",
+    "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Japón", "Jordania", "Kazajistán", "Kenya", "Kirguistán",
+    "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano", "Liberia", "Libia", "Lituania", "Luxemburgo", "Malasia",
+    "Malawi", "Malí", "Marruecos", "Mauricio", "México", "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar",
+    "Namibia", "Nepal", "Nicaragua", "Níger", "Nigeria", "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán",
+    "Panamá", "Paraguay", "Perú", "Polonia", "Portugal", "Reino Unido", "República Checa", "Rumania", "Rusia", "Ruanda",
+    "Senegal", "Serbia", "Singapur", "Siria", "Sri Lanka", "Sudáfrica", "Sudán", "Suecia", "Suiza", "Tailandia",
+    "Tanzania", "Togo", "Túnez", "Turquía", "Ucrania", "Uganda", "Uruguay", "Uzbekistán", "Venezuela", "Vietnam",
+    "Yemen", "Zambia", "Zimbabue"
   ]
 }
