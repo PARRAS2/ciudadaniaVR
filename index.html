@@ -82,26 +82,116 @@
     <div id="reticle-right" class="v-reticle"></div>
 
     <script>
-        const orgData = {
-            "ACNUR": { anio: 1950, imagen: "textures/logos/acnur.jpg", aportes: "Protección internacional a millones de refugiados y personas desplazadas por conflictos mundiales. Coordina refugios de emergencia, agua y salud.", paises: ["Afganistán", "Albania", "Alemania", "Angola", "Argelia", "Argentina", "Australia", "Austria", "Bangladesh", "Bélgica", "Brasil", "Canadá", "Chile", "Colombia", "España"] },
-            "Banco Mundial": { anio: 1944, imagen: "textures/logos/bancomundial.jpg", aportes: "Financiamiento estratégico y asistencia técnica a países en desarrollo. Su meta principal es reducir los índices de pobreza y fomentar prosperidad.", paises: ["Argentina", "Bolivia", "Brasil", "Chile", "Colombia", "Ecuador", "Estados Unidos", "México", "Perú", "Uruguay", "Venezuela", "Reino Unido", "Francia", "Japón", "China"] },
-            "Cruz Roja": { anio: 1863, imagen: "textures/logos/cruzroja.jpg", aportes: "Atención humanitaria neutral en conflictos armados, desastres naturales y emergencias médicas globales. Basado en neutralidad e independencia.", paises: ["Suiza", "Francia", "Italia", "España", "Reino Unido", "Alemania", "Estados Unidos", "Canadá", "México", "Colombia", "Brasil", "Argentina", "Japón", "China", "Australia"] },
-            "FAO": { anio: 1945, imagen: "textures/logos/fao.jpg", aportes: "Esfuerzos internacionales dirigidos a erradicar el hambre, lograr seguridad alimentaria y asegurar una agricultura eficiente y sostenible en el mundo.", paises: ["Italia", "Estados Unidos", "Canadá", "Francia", "Reino Unido", "Brasil", "México", "Argentina", "China", "India", "Japón", "Australia", "Egipto", "Nigeria", "Sudáfrica"] },
-            "FMI": { anio: 1944, imagen: "textures/logos/fmi.jpg", aportes: "Asegurar la estabilidad del sistema financiero internacional, promover el comercio, prevenir crisis cambiarias y otorgar créditos de asistencia.", paises: ["Estados Unidos", "Japón", "Alemania", "Francia", "Reino Unido", "China", "Italia", "Canadá", "India", "Brasil", "Rusia", "México", "España", "Argentina", "Arabia Saudita"] },
-            "INTERPOL": { anio: 1923, imagen: "textures/logos/interpol.jpg", aportes: "Facilitar la cooperación policial internacional y el control transfronterizo de delitos complejos como terrorismo y crimen organizado cibernético.", paises: ["Austria", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Japón", "China", "Brasil", "Argentina", "México", "Colombia", "Canadá", "Australia"] },
-            "OIEA": { anio: 1957, imagen: "textures/logos/oiea.jpg", aportes: "Promoción del uso pacífico y seguro de la energía nuclear, desarrollo tecnológico científico y monitorización para evitar la proliferación de armas atómicas.", paises: ["Estados Unidos", "Rusia", "China", "Francia", "Reino Unido", "Japón", "Alemania", "Canadá", "India", "Brasil", "Argentina", "México", "Sudáfrica", "Australia", "España"] },
-            "OIT": { anio: 1919, imagen: "textures/logos/oit.jpg", aportes: "Establecer normas laborales internacionales, promover el trabajo decente, defender derechos de los trabajadores y robustecer la protección social.", paises: ["Suiza", "Francia", "Reino Unido", "Estados Unidos", "Alemania", "Italia", "España", "Brasil", "México", "Argentina", "Chile", "Colombia", "China", "India", "Japón"] },
-            "OMC": { anio: 1995, imagen: "textures/logos/omc.jpg", aportes: "Supervisar las normas globales que rigen el comercio internacional entre los países miembros. Garantiza un flujo comercial libre, fluido y predecible.", paises: ["Suiza", "Estados Unidos", "China", "Japón", "Alemania", "Francia", "Reino Unido", "Italia", "Canadá", "Brasil", "México", "Argentina", "India", "Corea del Sur", "Australia"] },
-            "OMI": { anio: 1948, imagen: "textures/logos/omi.jpg", aportes: "Mejorar la seguridad del transporte marítimo dedicado al comercio global y establecer medidas estrictas para prevenir la contaminación del ecosistema marino.", paises: ["Reino Unido", "Estados Unidos", "Panamá", "Liberia", "Grecia", "Japón", "China", "Noruega", "Singapur", "Francia", "Alemania", "Italia", "Brasil", "México", "Argentina"] },
-            "OMS": { anio: 1948, imagen: "textures/logos/oms.jpg", aportes: "Gestionar políticas de prevención, promoción e intervención en salud pública global. Máxima autoridad coordinadora de pandemias y emergencies sanitarias.", paises: ["Suiza", "Estados Unidos", "Brasil", "México", "Argentina", "Francia", "Reino Unido", "Alemania", "Italia", "España", "China", "India", "Japón", "Rusia", "Sudáfrica"] },
-            "ONU": { anio: 1945, imagen: "textures/logos/onu.jpg", aportes: "Mantener la paz colectiva, la seguridad internacional, fomentar relaciones de amistad estrechas, defender derechos humanos y la cooperación global.", paises: ["Estados Unidos", "Rusia", "China", "Reino Unido", "Francia", "Alemania", "Japón", "Brasil", "México", "Argentina", "Colombia", "Canadá", "España", "Italia", "India"] },
-            "OPAQ": { anio: 1997, imagen: "textures/logos/opaq.jpg", aportes: "Organismo internacional encargado de la destrucción total, verificada y permanente de todos los arsenales de armas químicas existentes en el planeta.", paises: ["Países Bajos", "Estados Unidos", "Rusia", "China", "Reino Unido", "Francia", "Alemania", "Japón", "India", "Brasil", "México", "Argentina", "Canadá", "Australia", "España"] },
-            "PMA": { anio: 1961, imagen: "textures/logos/pma.jpg", aportes: "Asistencia de respuesta rápida alimentaria en zonas críticas de guerra, hambrunas devastadoras y desastres naturales. Salva millones de vidas anualmente.", paises: ["Italia", "Estados Unidos", "Canadá", "Francia", "Reino Unido", "Alemania", "Japón", "Brasil", "México", "Argentina", "Egipto", "Sudán", "Etiopía", "Siria", "Afganistán"] },
-            "PNUMA": { anio: 1972, imagen: "textures/logos/pnuma.jpg", aportes: "Coordinar respuestas de conservación ambiental, monitorear de forma científica el cambio climático y proteger la biodiversidad de ecosistemas vulnerables.", paises: ["Kenia", "Estados Unidos", "Brasil", "México", "Colombia", "Canadá", "Francia", "Reino Unido", "Alemania", "España", "China", "India", "Japón", "Australia", "Sudáfrica"] },
-            "UNESCO": { anio: 1945, imagen: "textures/logos/unesco.jpg", aportes: "Preservación histórica del Patrimonio de la Humanidad, fomento internacional del desarrollo de la educación pública, la ciencia y la diversidad cultural.", paises: ["Francia", "Estados Unidos", "Reino Unido", "España", "Italia", "Alemania", "México", "Brasil", "Argentina", "Perú", "Egipto", "China", "Japón", "India", "Rusia"] },
-            "UNICEF": { anio: 1946, imagen: "textures/logos/unicef.jpg", aportes: "Garantizar protección médica, nutrición esencial, agua potable y desarrollo educativo infantil a niños vulnerables en situaciones de extrema crisis.", paises: ["Estados Unidos", "Canadá", "Brasil", "México", "Argentina", "Colombia", "Francia", "Reino Unido", "Alemania", "España", "Italia", "China", "India", "Japón", "Sudáfrica"] },
-            "UIT": { anio: 1865, imagen: "textures/logos/uit.jpg", aportes: "Regular y estandarizar las telecomunicaciones de radiofrecuencia mundiales, la administración del espacio satelital y el desarrollo global de redes de internet.", paises: ["Suiza", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Rusia", "China", "Japón", "India", "Brasil", "México", "Argentina", "Canadá"] }
-        };
+       const orgData = {
+    "ACNUR": { 
+        anio: 1950, 
+        imagen: "logos/ACNUR.jpg", 
+        aportes: "Protección internacional a millones de refugiados y personas desplazadas por conflictos mundiales. Coordina refugios de emergencia, agua y salud.", 
+        paises: ["Afganistán", "Albania", "Alemania", "Angola", "Argelia", "Argentina", "Australia", "Austria", "Bangladesh", "Bélgica", "Brasil", "Canadá", "Chile", "Colombia", "España"] 
+    },
+    "Banco Mundial": { 
+        anio: 1944, 
+        imagen: "logos/Banco Mundial.jpg", 
+        aportes: "Financiamiento estratégico y asistencia técnica a países en desarrollo. Su meta principal es reducir los índices de pobreza y fomentar prosperidad.", 
+        paises: ["Argentina", "Bolivia", "Brasil", "Chile", "Colombia", "Ecuador", "Estados Unidos", "México", "Perú", "Uruguay", "Venezuela", "Reino Unido", "Francia", "Japón", "China"] 
+    },
+    "Cruz Roja": { 
+        anio: 1863, 
+        imagen: "logos/Cruz Roja.jpg", 
+        aportes: "Atención humanitaria neutral en conflictos armados, desastres naturales y emergencias médicas globales. Basado en neutralidad e independencia.", 
+        paises: ["Suiza", "Francia", "Italia", "España", "Reino Unido", "Alemania", "Estados Unidos", "Canadá", "México", "Colombia", "Brasil", "Argentina", "Japón", "China", "Australia"] 
+    },
+    "FAO": { 
+        anio: 1945, 
+        imagen: "logos/FAO.jpg", 
+        aportes: "Esfuerzos internacionales dirigidos a erradicar el hambre, lograr seguridad alimentaria y asegurar una agricultura eficiente y sostenible en el mundo.", 
+        paises: ["Italia", "Estados Unidos", "Canadá", "Francia", "Reino Unido", "Brasil", "México", "Argentina", "China", "India", "Japón", "Australia", "Egipto", "Nigeria", "Sudáfrica"] 
+    },
+    "FMI": { 
+        anio: 1944, 
+        imagen: "logos/FMI.jpg", 
+        aportes: "Asegurar la estabilidad del sistema financiero internacional, promover el comercio, prevenir crisis cambiarias y otorgar créditos de asistencia.", 
+        paises: ["Estados Unidos", "Japón", "Alemania", "Francia", "Reino Unido", "China", "Italia", "Canadá", "India", "Brasil", "Rusia", "México", "España", "Argentina", "Arabia Saudita"] 
+    },
+    "INTERPOL": { 
+        anio: 1923, 
+        imagen: "logos/INTERPOL.jpg", 
+        aportes: "Facilitar la cooperación policial internacional y el control transfronterizo de delitos complejos como terrorismo y crimen organizado cibernético.", 
+        paises: ["Austria", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Japón", "China", "Brasil", "Argentina", "México", "Colombia", "Canadá", "Australia"] 
+    },
+    "OIEA": { 
+        anio: 1957, 
+        imagen: "logos/OIEA.jpg", 
+        aportes: "Promoción del uso pacífico y seguro de la energía nuclear, desarrollo tecnológico científico y monitorización para evitar la proliferación de armas atómicas.", 
+        paises: ["Estados Unidos", "Rusia", "China", "Francia", "Reino Unido", "Japón", "Alemania", "Canadá", "India", "Brasil", "Argentina", "México", "Sudáfrica", "Australia", "España"] 
+    },
+    "OIT": { 
+        anio: 1919, 
+        imagen: "logos/OIT.jpg", 
+        aportes: "Establecer normas laborales internacionales, promover el trabajo decente, defender derechos de los trabajadores y robustecer la protección social.", 
+        paises: ["Suiza", "Francia", "Reino Unido", "Estados Unidos", "Alemania", "Italia", "España", "Brasil", "México", "Argentina", "Chile", "Colombia", "China", "India", "Japón"] 
+    },
+    "OMC": { 
+        anio: 1995, 
+        imagen: "logos/OMC.jpg", 
+        aportes: "Supervisar las normas globales que rigen el comercio internacional entre los países miembros. Garantiza un flujo comercial libre, fluido y predecible.", 
+        paises: ["Suiza", "Estados Unidos", "China", "Japón", "Alemania", "Francia", "Reino Unido", "Italia", "Canadá", "Brasil", "México", "Argentina", "India", "Corea del Sur", "Australia"] 
+    },
+    "OMI": { 
+        anio: 1948, 
+        imagen: "logos/OMI.jpg", 
+        aportes: "Mejorar la seguridad del transporte marítimo dedicado al comercio global y establecer medidas estrictas para prevenir la contaminación del ecosistema marino.", 
+        paises: ["Reino Unido", "Estados Unidos", "Panamá", "Liberia", "Grecia", "Japón", "China", "Noruega", "Singapur", "Francia", "Alemania", "Italia", "Brasil", "México", "Argentina"] 
+    },
+    "OMS": { 
+        anio: 1948, 
+        imagen: "logos/OMS.jpg", 
+        aportes: "Gestionar políticas de prevención, promoción e intervención en salud pública global. Máxima autoridad coordinadora de pandemias y emergencies sanitarias.", 
+        paises: ["Suiza", "Estados Unidos", "Brasil", "México", "Argentina", "Francia", "Reino Unido", "Alemania", "Italia", "España", "China", "India", "Japón", "Rusia", "Sudáfrica"] 
+    },
+    "ONU": { 
+        anio: 1945, 
+        imagen: "logos/ONU.jpg", 
+        aportes: "Mantener la paz colectiva, la seguridad internacional, fomentar relaciones de amistad estrechas, defender derechos humanos y la cooperación global.", 
+        paises: ["Estados Unidos", "Rusia", "China", "Reino Unido", "Francia", "Alemania", "Japón", "Brasil", "México", "Argentina", "Colombia", "Canadá", "España", "Italia", "India"] 
+    },
+    "OPAQ": { 
+        anio: 1997, 
+        imagen: "logos/OPAQ.jpg", 
+        aportes: "Organismo internacional encargado de la destrucción total, verificada y permanente de todos los arsenales de armas químicas existentes en el planeta.", 
+        paises: ["Países Bajos", "Estados Unidos", "Rusia", "China", "Reino Unido", "Francia", "Alemania", "Japón", "India", "Brasil", "México", "Argentina", "Canadá", "Australia", "España"] 
+    },
+    "PMA": { 
+        anio: 1961, 
+        imagen: "logos/PMA.jpg", 
+        aportes: "Asistencia de respuesta rápida alimentaria en zonas críticas de guerra, hambrunas devastadoras y desastres naturales. Salva millones de vidas anualmente.", 
+        paises: ["Italia", "Estados Unidos", "Canadá", "Francia", "Reino Unido", "Alemania", "Japón", "Brasil", "México", "Argentina", "Egipto", "Sudán", "Etiopía", "Siria", "Afganistán"] 
+    },
+    "PNUMA": { 
+        anio: 1972, 
+        imagen: "logos/PNUMA.jpg", 
+        aportes: "Coordinar respuestas de conservación ambiental, monitorear de forma científica el cambio climático y proteger la biodiversidad de ecosistemas vulnerables.", 
+        paises: ["Kenia", "Estados Unidos", "Brasil", "México", "Colombia", "Canadá", "Francia", "Reino Unido", "Alemania", "España", "China", "India", "Japón", "Australia", "Sudáfrica"] 
+    },
+    "UNESCO": { 
+        anio: 1945, 
+        imagen: "logos/UNESCO.jpg", 
+        aportes: "Preservación histórica del Patrimonio de la Humanidad, fomento internacional del desarrollo de la educación pública, la ciencia y la diversidad cultural.", 
+        paises: ["Francia", "Estados Unidos", "Reino Unido", "España", "Italia", "Alemania", "México", "Brasil", "Argentina", "Perú", "Egipto", "China", "Japón", "India", "Rusia"] 
+    },
+    "UNICEF": { 
+        anio: 1946, 
+        imagen: "logos/UNICEF.jpg", 
+        aportes: "Garantizar protección médica, nutrición esencial, agua potable y desarrollo educativo infantil a niños vulnerables en situaciones de extrema crisis.", 
+        paises: ["Estados Unidos", "Canadá", "Brasil", "México", "Argentina", "Colombia", "Francia", "Reino Unido", "Alemania", "España", "Italia", "China", "India", "Japón", "Sudáfrica"] 
+    },
+    "UIT": { 
+        anio: 1865, 
+        imagen: "logos/UIT.jpg", 
+        aportes: "Regular y estandarizar las telecomunicaciones de radiofrecuencia mundiales, la administración del espacio satelital y el desarrollo global de redes de internet.", 
+        paises: ["Suiza", "Francia", "Estados Unidos", "Reino Unido", "Alemania", "España", "Italia", "Rusia", "China", "Japón", "India", "Brasil", "México", "Argentina", "Canadá"] 
+    }
+};
 
         const orgKeys = Object.keys(orgData);
         let currentSelectedIndex = 0;
