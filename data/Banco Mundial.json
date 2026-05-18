@@ -1,7 +1,7 @@
 {
   "nombre": "Banco Mundial",
   "anio": 1944,
-  "imagen": "logos/Banco Mundial.jpg",
+  "imagen": "../logos/Banco Mundial.jpg",
   "info": [
     "El Banco Mundial (oficialmente Banco Internacional de Reconstrucción y Fomento) fue creado en 1944 durante la Conferencia de Bretton Woods. Inicialmente su objetivo era ayudar en la reconstrucción de Europa tras la Segunda Guerra Mundial.",
     "Hoy en día es una de las principales instituciones internacionales de desarrollo. Proporciona préstamos, créditos y asistencia técnica a países de ingresos bajos y medios para proyectos de infraestructura, educación, salud, agricultura, energía y lucha contra el cambio climático.",
