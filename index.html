@@ -51,7 +51,6 @@
         // ==================== CONFIGURACIÓN DE RUTAS LOCALES ====================
         const DATA_FOLDER_URL = "./data/"; 
         
-        // Listado de los archivos JSON que se leerán desde la carpeta data/
         const orgKeys = [
             "ACNUR", "Banco Mundial", "Cruz Roja", "FAO", "FMI", 
             "INTERPOL", "OIEA", "OIT", "OMC", "OMI", "OMS", 
@@ -62,7 +61,9 @@
         let currentSelectedIndex = 0;
         let currentPaisPage = 0;
         let currentInfoPage = 0;
-        const paisesPorPagina = 12;
+        
+        // Reducido a 10 países por página para acomodar la fuente más grande sin desbordar
+        const paisesPorPagina = 10; 
 
         let scene, camera, renderer, effect, vrControls, mouseControls;
         let earth, clouds, uiGroup;
@@ -72,7 +73,6 @@
         let isVR = false;
         let activeGamepad = null;
 
-        // Estados de botones para evitar repetición rápida por frames
         let buttonPressedState = {
             square: false, circle: false,
             dpadUp: false, dpadDown: false,
@@ -83,6 +83,10 @@
         const textureLoader = new THREE.TextureLoader();
         const loadedImages = {};
 
+        // Variables para límites de zoom dinámico
+        const MIN_ZOOM_DIST = 2.5;
+        const MAX_ZOOM_DIST = 8.5;
+
         // ==================== CARGA DINÁMICA ASÍNCRONA ====================
         async function loadAllOrganizationData() {
             const fetchPromises = orgKeys.map(async (key) => {
@@ -91,7 +95,6 @@
                     if (!response.ok) throw new Error(`No se pudo leer localmente: ${key}.json`);
                     const json = await response.json();
                     
-                    // Asignación de datos unificada en memoria
                     orgData[key] = {
                         anio: json.anio || json.año || 2026,
                         imagen: json.imagen || `logos/${key}.jpg`,
@@ -100,7 +103,6 @@
                     };
                 } catch (error) {
                     console.error(`Error procesando los datos de: ${key}`, error);
-                    // Respaldo para que la experiencia visual no se detenga
                     orgData[key] = { anio: 2026, imagen: `logos/${key}.jpg`, info: ["Error al cargar información."], paises: [] };
                 }
             });
@@ -123,13 +125,12 @@
             effect = new THREE.StereoEffect(renderer);
             effect.setSize(window.innerWidth, window.innerHeight);
 
-            // Iluminación
             scene.add(new THREE.AmbientLight(0xffffff, 0.7));
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
             dirLight.position.set(5, 5, 6);
             scene.add(dirLight);
 
-            // Planeta Tierra y Atmósfera de Nubes
+            // Planeta Tierra y Atmósfera
             const geometry = new THREE.SphereGeometry(1.2, 64, 64);
             const earthTexture = textureLoader.load('textures/8k_earth_daymap.jpg');
             earth = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 15 }));
@@ -146,7 +147,6 @@
             setupTextCanvases();
             createSpatialUI();
 
-            // Controles de Escritorio y VR Móvil
             mouseControls = new THREE.OrbitControls(camera, renderer.domElement);
             mouseControls.enableDamping = true;
             mouseControls.dampingFactor = 0.08;
@@ -157,7 +157,6 @@
             window.addEventListener("gamepaddisconnected", () => { activeGamepad = null; });
             window.addEventListener('resize', onWindowResize);
 
-            // Ejecutar carga desde la carpeta data/
             loadAllOrganizationData();
             animate();
         }
@@ -240,29 +239,29 @@
             const data = orgData[key];
             if (!data) return;
 
-            // --- PANEL IZQUIERDO: PAÍSES ---
+            // --- PANEL IZQUIERDO: PAÍSES (FUENTE AUMENTADA) ---
             leftCtx.clearRect(0, 0, canvasW, canvasH);
             leftCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             leftCtx.fillRect(0, 0, canvasW, canvasH);
             leftCtx.strokeStyle = "rgba(0, 123, 255, 0.9)"; leftCtx.lineWidth = 26;
             leftCtx.strokeRect(0, 0, canvasW, canvasH);
-            leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 130px 'Segoe UI'";
-            leftCtx.fillText("PAÍSES MIEMBROS", 100, 180);
+            leftCtx.fillStyle = "#00a2ff"; leftCtx.font = "bold 140px 'Segoe UI'";
+            leftCtx.fillText("PAÍSES MIEMBROS", 100, 190);
 
             const startPais = currentPaisPage * paisesPorPagina;
-            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 95px 'Segoe UI'";
-            let yPais = 420;
+            leftCtx.fillStyle = "#ffffff"; leftCtx.font = "bold 115px 'Segoe UI'"; // Aumentado de 95px a 115px
+            let yPais = 430;
             data.paises.slice(startPais, startPais + paisesPorPagina).forEach(p => {
                 leftCtx.fillText(`• ${p}`, 120, yPais);
-                yPais += 135;
+                yPais += 150; // Ajustado espacio entre renglones
             });
             
             const totalPaisPages = Math.ceil(data.paises.length / paisesPorPagina) || 1;
-            leftCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; leftCtx.font = "65px 'Segoe UI'";
+            leftCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; leftCtx.font = "70px 'Segoe UI'";
             leftCtx.fillText(`Pág. ${currentPaisPage + 1} de ${totalPaisPages}`, 100, 1950);
             leftTexture.needsUpdate = true;
 
-            // --- PANEL DERECHO: INFORMACIÓN PAGINADA ---
+            // --- PANEL DERECHO: INFORMACIÓN (FUENTE AUMENTADA) ---
             rightCtx.clearRect(0, 0, canvasW, canvasH);
             rightCtx.fillStyle = "rgba(6, 10, 22, 0.96)";
             rightCtx.fillRect(0, 0, canvasW, canvasH);
@@ -271,27 +270,26 @@
 
             if (loadedImages[key]) rightCtx.drawImage(loadedImages[key], 824, 80, 400, 400);
 
-            rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 150px 'Segoe UI'";
+            rightCtx.fillStyle = "#00a2ff"; rightCtx.font = "bold 155px 'Segoe UI'";
             rightCtx.textAlign = "center";
             rightCtx.fillText(key.toUpperCase(), 1024, 560);
 
             rightCtx.strokeStyle = "rgba(0, 123, 255, 0.4)"; rightCtx.lineWidth = 10;
             rightCtx.beginPath(); rightCtx.moveTo(100, 710); rightCtx.lineTo(1948, 710); rightCtx.stroke();
 
-            // Renderizado de la página de información actual (Idéntico comportamiento que países)
-            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "95px 'Segoe UI'";
+            rightCtx.fillStyle = "#ffffff"; rightCtx.font = "115px 'Segoe UI'"; // Aumentado de 95px a 115px
             rightCtx.textAlign = "left";
             
             const textoPaginaActual = data.info[currentInfoPage] || "";
-            wrapText(rightCtx, textoPaginaActual, 100, 850, 1840, 135);
+            wrapText(rightCtx, textoPaginaActual, 100, 880, 1840, 165); // Ajustado interlineado a 165
 
             const totalInfoPages = data.info.length || 1;
-            rightCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; rightCtx.font = "65px 'Segoe UI'";
+            rightCtx.fillStyle = "rgba(0, 162, 255, 0.6)"; rightCtx.font = "70px 'Segoe UI'";
             rightCtx.textAlign = "right";
             rightCtx.fillText(`Info ${currentInfoPage + 1} de ${totalInfoPages}`, 1948, 1950);
             rightTexture.needsUpdate = true;
 
-            // --- PANEL INFERIOR: SELECTOR DE ORGANIZACIÓN ---
+            // --- PANEL INFERIOR: SELECTOR ---
             selectorCtx.clearRect(0, 0, 1024, 240);
             selectorCtx.fillStyle = "rgba(10, 18, 36, 0.96)";
             selectorCtx.fillRect(0, 0, 1024, 240);
@@ -328,7 +326,7 @@
             const gp = navigator.getGamepads()[activeGamepad];
             if (!gp) return;
 
-            // Joystick: Rotación manual de la Tierra
+            // Joystick Izquierdo (Ejes 0 y 1): Rotación de la Tierra
             const sx = gp.axes[0], sy = gp.axes[1];
             if (Math.abs(sx) > 0.15) {
                 earth.rotation.y += sx * 0.03;
@@ -339,21 +337,42 @@
                 clouds.rotation.x += sy * 0.03;
             }
 
-            // D-Pad Arriba/Abajo -> Cambia páginas de PAÍSES
+            // === ACCIÓN NUEVA: ZOOM DINÁMICO CON JOYSTICK DERECHO HACIA DONDE MIRA EL PUNTERO ===
+            // Eje 3 suele representar el movimiento vertical del joystick derecho (D-Pad Derecho / Stick R)
+            const zoomAxis = gp.axes[3]; 
+            if (Math.abs(zoomAxis) > 0.15) {
+                // Obtener el vector de dirección hacia donde está apuntando la cámara exactamente
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+
+                // Mover la cámara hacia adelante o atrás sobre su propio vector de vista de puntero
+                // Invertimos el signo para que presionar "Arriba" acerque el zoom
+                camera.position.addScaledVector(direction, -zoomAxis * 0.12);
+
+                // Validamos límites físicos para no traspasar el planeta ni alejarse al infinito
+                const distanciaAlCentro = camera.position.length();
+                if (distanciaAlCentro < MIN_ZOOM_DIST) {
+                    camera.position.setLength(MIN_ZOOM_DIST);
+                } else if (distanciaAlCentro > MAX_ZOOM_DIST) {
+                    camera.position.setLength(MAX_ZOOM_DIST);
+                }
+            }
+
+            // D-Pad Arriba/Abajo -> Páginas de PAÍSES
             if (gp.buttons[12]?.pressed && !buttonPressedState.dpadUp) { buttonPressedState.dpadUp = true; scrollPaises(-1); }
             else if (!gp.buttons[12]?.pressed) buttonPressedState.dpadUp = false;
 
             if (gp.buttons[13]?.pressed && !buttonPressedState.dpadDown) { buttonPressedState.dpadDown = true; scrollPaises(1); }
             else if (!gp.buttons[13]?.pressed) buttonPressedState.dpadDown = false;
 
-            // D-Pad Izquierda/Derecha -> Cambia páginas de INFORMACIÓN
+            // D-Pad Izquierda/Derecha -> Páginas de INFORMACIÓN
             if (gp.buttons[14]?.pressed && !buttonPressedState.dpadLeft) { buttonPressedState.dpadLeft = true; scrollInfo(-1); }
             else if (!gp.buttons[14]?.pressed) buttonPressedState.dpadLeft = false;
 
             if (gp.buttons[15]?.pressed && !buttonPressedState.dpadRight) { buttonPressedState.dpadRight = true; scrollInfo(1); }
             else if (!gp.buttons[15]?.pressed) buttonPressedState.dpadRight = false;
 
-            // Cuadrado (2) / Círculo (1) -> Cambia de Organización
+            // Cuadrado / Círculo -> Cambia de Organización
             if (gp.buttons[2]?.pressed && !buttonPressedState.square) { buttonPressedState.square = true; navegarOrganizaciones(-1); }
             else if (!gp.buttons[2]?.pressed) buttonPressedState.square = false;
 
@@ -384,7 +403,6 @@
             effect.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Ejecución inicial
         init();
 
         document.getElementById('permission-btn').addEventListener('click', () => {
