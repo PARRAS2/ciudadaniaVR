@@ -1,0 +1,12 @@
+﻿{
+  "anio": 1950,
+  "imagen": "logos/FMI.jpg",
+  "info": [
+    "Primera página de información sobre la organización.",
+    "Segunda página de información detallada.",
+    "Tercera página de información adicional."
+  ],
+  "paises": [
+    "País 1", "País 2", "País 3"
+  ]
+}
