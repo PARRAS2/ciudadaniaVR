@@ -1,12 +1,26 @@
-﻿{
-  "anio": 1950,
+{
+  "nombre": "OIT",
+  "anio": 1919,
   "imagen": "logos/OIT.jpg",
   "info": [
-    "Primera página de información sobre la organización.",
-    "Segunda página de información detallada.",
-    "Tercera página de información adicional."
+    "La Organización Internacional del Trabajo (OIT) fue fundada en 1919 como parte del Tratado de Versalles, al final de la Primera Guerra Mundial. Es la única agencia de las Naciones Unidas que tiene una estructura tripartita (gobiernos, empleadores y trabajadores).",
+    "Su misión es promover el trabajo decente, establecer normas laborales internacionales, defender los derechos de los trabajadores, fomentar el empleo productivo y fortalecer la protección social en todo el mundo.",
+    "Ha adoptado más de 190 convenios internacionales sobre temas como libertad sindical, discriminación, trabajo infantil, seguridad y salud en el trabajo, y igualdad de género. En 1969 recibió el Premio Nobel de la Paz."
   ],
   "paises": [
-    "País 1", "País 2", "País 3"
+    "Afganistán", "Albania", "Alemania", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaiyán", "Bahamas",
+    "Bangladesh", "Barbados", "Bélgica", "Belice", "Benín", "Bolivia", "Bosnia y Herzegovina", "Botswana", "Brasil", "Bulgaria",
+    "Burkina Faso", "Burundi", "Cabo Verde", "Camboya", "Camerún", "Canadá", "Chad", "Chile", "China", "Colombia",
+    "Comoras", "Congo", "Corea del Sur", "Costa Rica", "Croacia", "Cuba", "Dinamarca", "Ecuador", "Egipto", "El Salvador",
+    "España", "Estados Unidos", "Estonia", "Etiopía", "Filipinas", "Finlandia", "Francia", "Gabón", "Gambia", "Georgia",
+    "Ghana", "Grecia", "Guatemala", "Guinea", "Guyana", "Haití", "Honduras", "Hungría", "India", "Indonesia",
+    "Irán", "Irlanda", "Islandia", "Israel", "Italia", "Jamaica", "Japón", "Jordania", "Kazajistán", "Kenya",
+    "Kirguistán", "Kuwait", "Laos", "Lesotho", "Letonia", "Líbano", "Liberia", "Libia", "Lituania", "Luxemburgo",
+    "Macedonia del Norte", "Madagascar", "Malasia", "Malawi", "Malí", "Malta", "Marruecos", "Mauricio", "Mauritania", "México",
+    "Moldavia", "Mongolia", "Montenegro", "Mozambique", "Myanmar", "Namibia", "Nepal", "Nicaragua", "Níger", "Nigeria",
+    "Noruega", "Nueva Zelanda", "Omán", "Países Bajos", "Pakistán", "Panamá", "Paraguay", "Perú", "Polonia", "Portugal",
+    "Reino Unido", "República Checa", "Rumania", "Rusia", "Ruanda", "Senegal", "Serbia", "Sierra Leona", "Singapur", "Siria",
+    "Sudáfrica", "Sudán", "Suecia", "Suiza", "Tailandia", "Tanzania", "Tayikistán", "Togo", "Trinidad y Tobago", "Túnez",
+    "Turquía", "Ucrania", "Uganda", "Uruguay", "Uzbekistán", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabue"
   ]
 }
